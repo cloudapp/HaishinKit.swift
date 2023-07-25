@@ -7,7 +7,7 @@ import SwiftPMSupport
 import UIKit
 #endif
 #if os(iOS) || os(macOS)
-extension AVCaptureSession.Preset {
+public extension AVCaptureSession.Preset {
     static let `default`: AVCaptureSession.Preset = .hd1280x720
 }
 #endif

@@ -10,6 +10,8 @@ import SwiftPMSupport
 public protocol TSWriterDelegate: AnyObject {
     func writer(_ writer: TSWriter, didRotateFileHandle timestamp: CMTime)
     func writer(_ writer: TSWriter, didOutput data: Data)
+    func didGenerateTS(_ file: URL)
+    func didGenerateM3U8(_ file: URL)
 }
 
 public extension TSWriterDelegate {
@@ -33,7 +35,11 @@ public class TSWriter: Running {
     /// This instance is running to process(true) or not(false).
     public internal(set) var isRunning: Atomic<Bool> = .init(false)
     /// The exptected medias = [.video, .audio].
-    public var expectedMedias: Set<AVMediaType> = []
+    public var expectedMedias: Set<AVMediaType> = [] {
+        didSet {
+            print("expected medias \(expectedMedias.count)")
+        }
+    }
 
     var audioContinuityCounter: UInt8 = 0
     var videoContinuityCounter: UInt8 = 0
@@ -295,15 +301,19 @@ extension TSWriter: VideoCodecDelegate {
     }
 }
 
-class TSFileWriter: TSWriter {
-    static let defaultSegmentCount: Int = 3
-    static let defaultSegmentMaxCount: Int = 12
+public class TSFileWriter: TSWriter {
+    static let defaultSegmentCount: Int = 10000
+    static let defaultSegmentMaxCount: Int = 10000
+    public var baseFolder: URL?
+    public var shouldAppendToStream: Bool = false
 
     var segmentMaxCount: Int = TSFileWriter.defaultSegmentMaxCount
     private(set) var files: [M3UMediaInfo] = []
     private var currentFileHandle: FileHandle?
     private var currentFileURL: URL?
     private var sequence: Int = 0
+    public var isDiscontinuity = false
+    private var isTerminating: Bool = false
 
     var playlist: String {
         var m3u8 = M3U()
@@ -331,7 +341,11 @@ class TSFileWriter: TSWriter {
             return
         }
         let fileManager = FileManager.default
-
+        guard let base = baseFolder else {
+            
+            return
+          }
+        
         #if os(OSX)
         let bundleIdentifier: String? = Bundle.main.bundleIdentifier
         let temp: String = bundleIdentifier == nil ? NSTemporaryDirectory() : NSTemporaryDirectory() + bundleIdentifier! + "/"
@@ -347,13 +361,31 @@ class TSFileWriter: TSWriter {
             }
         }
 
-        let filename: String = Int(timestamp.seconds).description + ".ts"
-        let url = URL(fileURLWithPath: temp + filename)
-
-        if let currentFileURL: URL = currentFileURL {
-            files.append(M3UMediaInfo(url: currentFileURL, duration: duration))
+        // let filename: String = Int(timestamp.seconds).description + ".ts"
+          let playlistUrl = base.appendingPathComponent("ScreenRecording.m3u8")
+          let filename = String(format: "part%.5i.ts", sequence)
+          let url = base.appendingPathComponent(filename)
+          
+          if isTerminating { return }
+        
+        // Toss part0 due to bad duration calculation.
+            // shouldAppendToStream is true when countdown-completed arrives
+            if let currentUrl = currentFileURL, sequence > 1 && shouldAppendToStream {
+              // let asset = AVAsset(url: currentUrl)
+              // let calculatedDuration = CMTimeGetSeconds(asset.duration)
+              // Logger.info("Duration: \(duration) Calculated duration: \(calculatedDuration)")
+              files.append(M3UMediaInfo(url: currentUrl, duration: duration, isDiscontinuous: isDiscontinuity))
+              isDiscontinuity = false
+              fileManager.createFile(atPath: playlistUrl.path, contents: playlist.data(using: .utf8), attributes: nil)
+              notifyDelegate(tsUrl: currentUrl, playlistUrl: playlistUrl)
+            }
+            
             sequence += 1
-        }
+            if shouldAppendToStream {
+              segmentDuration = 2
+            } else {
+              segmentDuration = 1
+            }
 
         fileManager.createFile(atPath: url.path, contents: nil, attributes: nil)
         if TSFileWriter.defaultSegmentMaxCount <= files.count {
@@ -380,7 +412,31 @@ class TSFileWriter: TSWriter {
         writeProgram()
         rotatedTimestamp = timestamp
     }
+    
+    
+    func notifyDelegate(tsUrl: URL, playlistUrl: URL) {
+       self.delegate?.didGenerateTS(tsUrl)
+       self.delegate?.didGenerateM3U8(playlistUrl)
+     }
 
+    private func writeFinal() {
+        guard let base = baseFolder else {
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now()+(TSWriter.defaultSegmentDuration+1)) {
+            if let currentUrl = self.currentFileURL {
+                let playlistUrl = base.appendingPathComponent("ScreenRecording.m3u8")
+                
+                self.files.append(M3UMediaInfo(url: currentUrl, duration: TSWriter.defaultSegmentDuration,  isDiscontinuous: false))
+                FileManager.default.createFile(atPath: playlistUrl.path, contents: self.playlist.data(using: .utf8), attributes: nil)
+                self.notifyDelegate(tsUrl: currentUrl, playlistUrl: playlistUrl)
+            }
+            self.currentFileURL = nil
+            self.currentFileHandle = nil
+            super.stopRunning()
+        }
+    }
+    
     override func write(_ data: Data) {
         nstry({
             self.currentFileHandle?.write(data)
@@ -391,7 +447,7 @@ class TSFileWriter: TSWriter {
         super.write(data)
     }
 
-    override func stopRunning() {
+    public override func stopRunning() {
         guard !isRunning.value else {
             return
         }
@@ -399,6 +455,8 @@ class TSFileWriter: TSWriter {
         currentFileHandle = nil
         removeFiles()
         super.stopRunning()
+        writeFinal()
+        
     }
 
     func getFilePath(_ fileName: String) -> String? {

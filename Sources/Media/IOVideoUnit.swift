@@ -326,7 +326,8 @@ extension IOVideoUnit: AVCaptureVideoDataOutputSampleBufferDelegate {
             }
             appendSampleBuffer(sampleBuffer)
         } else if multiCamCapture.output == captureOutput {
-            multiCamSampleBuffer = sampleBuffer
+//            multiCamSampleBuffer = sampleBuffer
+            appendSampleBuffer(sampleBuffer)
         }
     }
 }
