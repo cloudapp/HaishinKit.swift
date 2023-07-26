@@ -3,19 +3,22 @@ import Foundation
 /**
  - seealso: https://tools.ietf.org/html/draft-pantos-http-live-streaming-19
  */
-struct M3U {
-    static let header: String = "#EXTM3U"
-    static let defaultVersion: Int = 3
-
+public struct M3U {
+    public static let header: String = "#EXTM3U"
+    public static let defaultVersion: Int = 3
+    
     var version: Int = M3U.defaultVersion
     var mediaList: [M3UMediaInfo] = []
-    var mediaSequence: Int = 0
-    var targetDuration: Double = 5
+    public  var mediaSequence: Int = 0
+    public var targetDuration: Double = 5
+    public init() {
+        
+    }
 }
 
 extension M3U: CustomStringConvertible {
     // MARK: CustomStringConvertible
-    var description: String {
+   public var description: String {
         var lines: [String] = [
             "#EXTM3U",
             "#EXT-X-VERSION:\(version)",
@@ -23,8 +26,15 @@ extension M3U: CustomStringConvertible {
             "#EXT-X-TARGETDURATION:\(Int(targetDuration))"
         ]
         for info in mediaList {
-            lines.append("#EXTINF:\(info.duration),")
-            lines.append(info.url.pathComponents.last!)
+          if info.isSkipped ?? false {
+                  continue
+                }
+                if info.isDiscontinuous {
+                  lines.append("#EXT-X-DISCONTINUITY")
+                }
+                      lines.append("#EXTINF:\(info.duration),")
+                      lines.append(info.url.pathComponents.last!)
+          
         }
         return lines.joined(separator: "\r\n")
     }
@@ -34,4 +44,6 @@ extension M3U: CustomStringConvertible {
 struct M3UMediaInfo {
     let url: URL
     let duration: Double
+    var isDiscontinuous: Bool
+    var isSkipped: Bool?
 }

@@ -7,7 +7,7 @@ import SwiftPMSupport
 import UIKit
 #endif
 #if os(iOS) || os(macOS)
-extension AVCaptureSession.Preset {
+public extension AVCaptureSession.Preset {
     static let `default`: AVCaptureSession.Preset = .hd1280x720
 }
 #endif
@@ -215,6 +215,8 @@ public class IOMixer {
     func useSampleBuffer(sampleBuffer: CMSampleBuffer, mediaType: AVMediaType) -> Bool {
         switch mediaSync {
         case .video:
+            print(videoTimeStamp.seconds)
+            print(sampleBuffer.presentationTimeStamp.seconds)
             if mediaType == .audio {
                 return !videoTimeStamp.seconds.isZero && videoTimeStamp.seconds <= sampleBuffer.presentationTimeStamp.seconds
             }

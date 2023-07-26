@@ -326,7 +326,11 @@ extension IOVideoUnit: AVCaptureVideoDataOutputSampleBufferDelegate {
             }
             appendSampleBuffer(sampleBuffer)
         } else if multiCamCapture.output == captureOutput {
-            multiCamSampleBuffer = sampleBuffer
+//            multiCamSampleBuffer = sampleBuffer
+            guard mixer?.useSampleBuffer(sampleBuffer: sampleBuffer, mediaType: AVMediaType.video) == true else {
+                return
+            }
+            appendSampleBuffer(sampleBuffer)
         }
     }
 }
