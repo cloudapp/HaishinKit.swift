@@ -451,10 +451,15 @@ public class TSFileWriter: TSWriter {
         guard !isRunning.value else {
             return
         }
-        currentFileURL = nil
-        currentFileHandle = nil
-        removeFiles()
-        super.stopRunning()
+        nstry({
+          self.currentFileHandle?.synchronizeFile()
+        }, { exeption in
+//          Logger.warn("\(exeption)")
+            
+        })
+
+        currentFileHandle?.closeFile()
+        
         writeFinal()
         
     }
