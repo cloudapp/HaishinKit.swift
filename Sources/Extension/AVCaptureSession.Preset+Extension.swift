@@ -10,7 +10,6 @@ extension AVCaptureSession.Preset {
 
 @available(tvOS 17.0, *)
 extension AVCaptureSession.Preset {
-    static let `default`: AVCaptureSession.Preset = .hd1280x720
 
     var width: Int32? {
         switch self {
