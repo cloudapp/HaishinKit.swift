@@ -3,11 +3,16 @@ import Foundation
 
 /// The AudioCodecSettings class  specifying audio compression settings.
 public struct AudioCodecSettings: Codable {
-    /// The defualt value.
+    /// The default value.
     public static let `default` = AudioCodecSettings()
 
+    /// Maximum number of channels supported by the system
+    public static let maximumNumberOfChannels: UInt32 = 2
+    /// Maximum sampleRate supported by the system
+    public static let mamimumSampleRate: Float64 = 48000
+
     /// The type of the AudioCodec supports format.
-    public enum Format: Codable {
+    enum Format: Codable {
         /// The AAC format.
         case aac
         /// The PCM format.
@@ -76,10 +81,19 @@ public struct AudioCodecSettings: Codable {
             }
         }
 
+        var bufferCounts: Int {
+            switch self {
+            case .aac:
+                return 6
+            case .pcm:
+                return 1
+            }
+        }
+
         func makeAudioBuffer(_ format: AVAudioFormat) -> AVAudioBuffer? {
             switch self {
             case .aac:
-                return AVAudioCompressedBuffer(format: format, packetCapacity: 1, maximumPacketSize: 1024)
+                return AVAudioCompressedBuffer(format: format, packetCapacity: 1, maximumPacketSize: 1024 * Int(format.channelCount))
             case .pcm:
                 return AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 1024)
             }
@@ -98,7 +112,7 @@ public struct AudioCodecSettings: Codable {
                     mBytesPerPacket: bytesPerPacket,
                     mFramesPerPacket: framesPerPacket,
                     mBytesPerFrame: bytesPerFrame,
-                    mChannelsPerFrame: inSourceFormat.mChannelsPerFrame,
+                    mChannelsPerFrame: min(inSourceFormat.mChannelsPerFrame, AudioCodecSettings.maximumNumberOfChannels),
                     mBitsPerChannel: bitsPerChannel,
                     mReserved: 0
                 )
@@ -107,7 +121,7 @@ public struct AudioCodecSettings: Codable {
                 return AVAudioFormat(
                     commonFormat: .pcmFormatFloat32,
                     sampleRate: inSourceFormat.mSampleRate,
-                    channels: inSourceFormat.mChannelsPerFrame,
+                    channels: min(inSourceFormat.mChannelsPerFrame, AudioCodecSettings.maximumNumberOfChannels),
                     interleaved: true
                 )
             }
@@ -116,17 +130,34 @@ public struct AudioCodecSettings: Codable {
 
     /// Specifies the bitRate of audio output.
     public var bitRate: Int
-
+    /// Specifies the sampleRate of audio output.
+    public var sampleRate: Float64
+    /// Specifies the channels of audio output.
+    public var channels: Int
+    /// Map of the output to input channels.
+    public var channelMap: [Int: Int]
     /// Specifies the output format.
-    public var format: AudioCodecSettings.Format
+    var format: AudioCodecSettings.Format = .aac
 
     /// Create an new AudioCodecSettings instance.
     public init(
         bitRate: Int = 64 * 1000,
-        format: AudioCodecSettings.Format = .aac
+        sampleRate: Float64 = 0,
+        channels: Int = 0,
+        channelMap: [Int: Int] = [0: 0, 1: 1]
     ) {
         self.bitRate = bitRate
-        self.format = format
+        self.sampleRate = sampleRate
+        self.channels = channels
+        self.channelMap = channelMap
+    }
+
+    func invalidateConverter(_ oldValue: AudioCodecSettings) -> Bool {
+        return !(
+            sampleRate == oldValue.sampleRate &&
+                channels == oldValue.channels &&
+                channelMap == oldValue.channelMap
+        )
     }
 
     func apply(_ converter: AVAudioConverter?, oldValue: AudioCodecSettings?) {
@@ -142,5 +173,39 @@ public struct AudioCodecSettings: Codable {
             })?.intValue ?? bitRate
             converter.bitRate = min(maxAvailableBitRate, max(minAvailableBitRate, bitRate))
         }
+    }
+
+    func makeOutputChannels(_ inChannels: Int) -> Int {
+        return min(channels == 0 ? inChannels : channels, Int(Self.maximumNumberOfChannels))
+    }
+
+    func makeChannelMap(_ inChannels: Int) -> [NSNumber] {
+        let outChannels = makeOutputChannels(inChannels)
+        var result = Array(repeating: -1, count: outChannels)
+        for inputIndex in 0..<min(inChannels, outChannels) {
+            result[inputIndex] = inputIndex
+        }
+        for currentIndex in 0..<outChannels {
+            if let inputIndex = channelMap[currentIndex], inputIndex < inChannels {
+                result[currentIndex] = inputIndex
+            }
+        }
+        return result.map { NSNumber(value: $0) }
+    }
+
+    func makeOutputFormat(_ inputFormat: AVAudioFormat?) -> AVAudioFormat? {
+        guard let inputFormat else {
+            return nil
+        }
+        let numberOfChannels = makeOutputChannels(Int(inputFormat.channelCount))
+        guard let channelLayout = AVAudioChannelLayout(layoutTag: kAudioChannelLayoutTag_DiscreteInOrder | UInt32(numberOfChannels)) else {
+            return nil
+        }
+        return .init(
+            commonFormat: inputFormat.commonFormat,
+            sampleRate: min(sampleRate == 0 ? inputFormat.sampleRate : sampleRate, Self.mamimumSampleRate),
+            interleaved: inputFormat.isInterleaved,
+            channelLayout: channelLayout
+        )
     }
 }

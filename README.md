@@ -24,7 +24,7 @@ Enterprise Grade APIs for Feeds & Chat. <a href="https://getstream.io/tutorials/
 * If you met a HaishinKit's bug🐛, use a [GitHub Issue](https://github.com/shogo4405/HaishinKit.swift/issues) with **Bug report template**
   - The trace level log is very useful. Please set `LBLogger.with(HaishinKitIdentifier).level = .trace`. 
   - If you don't use an issue template. I will immediately close the your issue without a comment.
-* If you **want to contribute**, submit a pull request!
+* If you **want to contribute**, submit a pull request with a pr template.
 * If you want to support e-mail based communication without GitHub.
   - Consulting fee is [$50](https://www.paypal.me/shogo4405/50USD)/1 incident. I'm able to response a few days.
 * [Discord chatroom](https://discord.com/invite/8nkshPnanr).
@@ -38,7 +38,6 @@ Enterprise Grade APIs for Feeds & Chat. <a href="https://getstream.io/tutorials/
 ## 🌏 Related projects
 Project name    |Notes       |License
 ----------------|------------|--------------
-[SRTHaishinKit for iOS.](https://github.com/shogo4405/SRTHaishinKit.swift)|Camera and Microphone streaming library via SRT.|[BSD 3-Clause "New" or "Revised" License](https://github.com/shogo4405/SRTHaishinKit.swift/blob/master/LICENSE.md)
 [HaishinKit for Android.](https://github.com/shogo4405/HaishinKit.kt)|Camera and Microphone streaming library via RTMP for Android.|[BSD 3-Clause "New" or "Revised" License](https://github.com/shogo4405/HaishinKit.kt/blob/master/LICENSE.md)
 [HaishinKit for Flutter.](https://github.com/shogo4405/HaishinKit.dart)|Camera and Microphone streaming library via RTMP for Flutter.|[BSD 3-Clause "New" or "Revised" License](https://github.com/shogo4405/HaishinKit.dart/blob/master/LICENSE.md)
 
@@ -58,18 +57,19 @@ Project name    |Notes       |License
   - [x] _Tunneled (RTMPT over SSL/TLS) (Technical Preview)_
 - [x] _RTMPT (Technical Preview)_
 - [x] ReplayKit Live as a Broadcast Upload Extension
-- [x] Supported codec
-  - Audio
-    - [x] AAC
-  - Video
-    - [x] H264/AVC
-      - ex: `stream.videoSettings.profileLevel = kVTProfileLevel_H264_Baseline_3_1 as String`
-    - [x] H265/HEVC ([Server-side support is required.](https://github.com/veovera/enhanced-rtmp/blob/main/enhanced-rtmp-v1.pdf))
-      - ex: `stream.videoSettings.profileLevel = kVTProfileLevel_HEVC_Main_AutoLevel as String`
+- [x] Enhanced RTMP
 
 ### HLS
 - [x] HTTPService
 - [x] HLS Publish
+
+### SRT
+- [x] Publish and Recording (H264/AAC)
+- [x] Playback(beta)
+- [ ] mode
+  - [x] caller
+  - [x] listener
+  - [ ] rendezvous
 
 ### Multi Camera
 Supports two camera video sources. A picture-in-picture display that shows the image of the secondary camera of the primary camera. Supports camera split display that displays horizontally and vertically.
@@ -79,13 +79,14 @@ Supports two camera video sources. A picture-in-picture display that shows the i
 |<img width="1382" alt="" src="https://user-images.githubusercontent.com/810189/210043421-ceb18cb7-9b50-43fa-a0a2-8b92b78d9df1.png">|<img width="1382" alt="" src="https://user-images.githubusercontent.com/810189/210043687-a99f21b6-28b2-4170-96de-6c814debd84d.png">|
 
 ```swift
-let back = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
-stream.attachCamera(back)
-
+// If you're using multi-camera functionality, please make sure to call the attachMultiCamera method first. This is required for iOS 14 and 15, among others.
 if #available(iOS 13.0, *) {
   let front = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
   stream.attachMultiCamera(front)
 }
+let back = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
+stream.attachCamera(back)
+rtmpStream.attachAudio(AVCaptureDevice.default(for: .audio))
 ```
 
 ### Rendering
@@ -100,65 +101,51 @@ if #available(iOS 13.0, *) {
 
 ### Others
 - [x] [Support multitasking camera access.](https://developer.apple.com/documentation/avfoundation/capture_setup/accessing_the_camera_while_multitasking)
-- [x] _Support tvOS 11.0+  (Technical Preview)_
-  - tvOS can't use camera and microphone devices.
-- [x] Hardware acceleration for H264 video encoding, AAC audio encoding
 - [x] Support "Allow app extension API only" option
-- [ ] ~~Support GPUImage framework (~> 0.5.12)~~
-  - ~~https://github.com/shogo4405/GPUHaishinKit.swift/blob/master/README.md~~
-- [ ] ~~Objective-C Bridging~~
-
-## 🌏 Requirements
-|-|iOS|OSX|tvOS|Xcode|Swift|
-|:----:|:----:|:----:|:----:|:----:|:----:|
-|1.5.0+|11.0+|10.13+|10.2+|14.3+|5.7+|
-|1.4.0+|11.0+|10.13+|10.2+|14.0+|5.7+|
 
 ## 🐾 Examples
 Examples project are available for iOS with UIKit, iOS with SwiftUI, macOS and tvOS.
 - [x] Camera and microphone publish.
-- [x] RTMP Playback  
+- [x] RTMP Playback
 ```sh
 git clone https://github.com/shogo4405/HaishinKit.swift.git
 cd HaishinKit.swift
-carthage bootstrap --use-xcframeworks
+carthage bootstrap -platform iOS,macOS,tvOS --use-xcframeworks
 open HaishinKit.xcodeproj
 ```
 
-## ☕ Cocoa Keys
+## 🌏 Requirements
+
+### Development
+|Version|Xcode|Swift|
+|:----:|:----:|:----:|
+|1.6.0+|15.0+|5.8+|
+|1.5.0+|14.0+|5.7+|
+
+### OS
+|-|iOS|tvOS|macOS|visionOS|watchOS|
+|:----|:----:|:----:|:----:|:----:|:----:|
+|HaishinKit|12.0+|12.0+|10.13+|-|-|
+|SRTHaishinKit|12.0+|-|-|-|-|
+
+### Cocoa Keys
 Please contains Info.plist.
 
-iOS 10.0+
+**iOS 10.0+**
 * NSMicrophoneUsageDescription
 * NSCameraUsageDescription
 
-macOS 10.14+
+**macOS 10.14+**
 * NSMicrophoneUsageDescription
 * NSCameraUsageDescription
 
 ## 🔧 Installation
-### CocoaPods
-```rb
-source 'https://github.com/CocoaPods/Specs.git'
-use_frameworks!
-
-def import_pods
-    pod 'HaishinKit', '~> 1.5.4
-end
-
-target 'Your Target'  do
-    platform :ios, '11.0'
-    import_pods
-end
-```
-### Carthage
-```
-github "shogo4405/HaishinKit.swift" ~> 1.5.4
-```
-### Swift Package Manager
-```
-https://github.com/shogo4405/HaishinKit.swift
-```
+HaishinKit has a multi-module configuration. If you want to use the SRT protocol, please use SRTHaishinKit. SRTHaishinKit supports SPM only.
+|  | HaishinKit | SRTHaishinKit |
+| - | :- | :- |
+| SPM | https://github.com/shogo4405/HaishinKit.swift | https://github.com/shogo4405/HaishinKit.swift |
+| CocoaPods | source 'https://github.com/CocoaPods/Specs.git'<br>use_frameworks!<br><br>def import_pods<br>    pod 'HaishinKit', '~> 1.6.0<br>end<br><br>target 'Your Target'  do<br>    platform :ios, '12.0'<br>    import_pods<br>end<br> | Not supported. |
+| Carthage | github "shogo4405/HaishinKit.swift" ~> 1.6.0 | Not supported. |
 
 ## 🔧 Prerequisites
 Make sure you setup and activate your AVAudioSession iOS.

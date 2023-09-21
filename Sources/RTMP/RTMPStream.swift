@@ -411,15 +411,18 @@ open class RTMPStream: NetStream {
     }
 
     /// Creates flv metadata for a stream.
-    open func createMetaData() -> ASObject {
+    open func makeMetaData() -> ASObject {
         var metadata: [String: Any] = [:]
         #if os(iOS) || os(macOS)
         if mixer.videoIO.capture.device != nil {
             metadata["width"] = mixer.videoIO.codec.settings.videoSize.width
             metadata["height"] = mixer.videoIO.codec.settings.videoSize.height
             metadata["framerate"] = mixer.videoIO.frameRate
-            if mixer.videoIO.codec.settings.format == .h264 {
+            switch mixer.videoIO.codec.settings.format {
+            case .h264:
                 metadata["videocodecid"] = FLVVideoCodec.avc.rawValue
+            case .hevc:
+                metadata["videocodecid"] = FLVVideoFourCC.hevc.rawValue
             }
             metadata["videodatarate"] = mixer.videoIO.codec.settings.bitRate / 1000
         }
@@ -518,7 +521,7 @@ open class RTMPStream: NetStream {
             dataTimeStamps.removeAll()
             FCPublish()
         case .publishing:
-            send(handlerName: "@setDataFrame", arguments: "onMetaData", createMetaData())
+            send(handlerName: "@setDataFrame", arguments: "onMetaData", makeMetaData())
             mixer.startEncoding(muxer)
         default:
             break

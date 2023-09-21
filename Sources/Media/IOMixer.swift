@@ -2,22 +2,23 @@ import AVFoundation
 #if canImport(SwiftPMSupport)
 import SwiftPMSupport
 #endif
-
 #if os(iOS)
 import UIKit
 #endif
+
 #if os(iOS) || os(macOS)
 public extension AVCaptureSession.Preset {
     static let `default`: AVCaptureSession.Preset = .hd1280x720
 }
 #endif
 
+
 protocol IOMixerDelegate: AnyObject {
     func mixer(_ mixer: IOMixer, didOutput audio: AVAudioPCMBuffer, presentationTimeStamp: CMTime)
     func mixer(_ mixer: IOMixer, didOutput video: CMSampleBuffer)
     #if os(iOS)
-    func mixer(_ mixer: IOMixer, sessionWasInterrupted session: AVCaptureSession, reason: AVCaptureSession.InterruptionReason)
-    func mixer(_ mixer: IOMixer, sessionInterruptionEnded session: AVCaptureSession, reason: AVCaptureSession.InterruptionReason)
+    func mixer(_ mixer: IOMixer, sessionWasInterrupted session: AVCaptureSession, reason: AVCaptureSession.InterruptionReason?)
+    func mixer(_ mixer: IOMixer, sessionInterruptionEnded session: AVCaptureSession)
     #endif
 }
 
@@ -82,8 +83,6 @@ public class IOMixer {
     }()
 
     #if os(iOS) || os(macOS)
-    var isMultitaskingCameraAccessEnabled = true
-
     var isMultiCamSessionEnabled = false {
         didSet {
             guard oldValue != isMultiCamSessionEnabled else {
@@ -240,7 +239,7 @@ public class IOMixer {
         if session.canSetSessionPreset(sessionPreset) {
             session.sessionPreset = sessionPreset
         }
-        if isMultitaskingCameraAccessEnabled && session.isMultitaskingCameraAccessSupported {
+        if session.isMultitaskingCameraAccessSupported {
             session.isMultitaskingCameraAccessEnabled = true
         }
         return session
@@ -383,8 +382,8 @@ extension IOMixer: Running {
             let isMultiCamSupported = true
             #endif
             guard let device = error.device, let format = device.videoFormat(
-                width: sessionPreset.width ?? videoIO.codec.settings.videoSize.width,
-                height: sessionPreset.height ?? videoIO.codec.settings.videoSize.height,
+                width: sessionPreset.width ?? Int32(videoIO.codec.settings.videoSize.width),
+                height: sessionPreset.height ?? Int32(videoIO.codec.settings.videoSize.height),
                 frameRate: videoIO.frameRate,
                 isMultiCamSupported: isMultiCamSupported
             ), device.activeFormat != format else {
@@ -414,10 +413,13 @@ extension IOMixer: Running {
     #if os(iOS)
     @objc
     private func sessionWasInterrupted(_ notification: Notification) {
+        guard let session = notification.object as? AVCaptureSession else {
+            return
+        }
         guard let userInfoValue = notification.userInfo?[AVCaptureSessionInterruptionReasonKey] as AnyObject?,
               let reasonIntegerValue = userInfoValue.integerValue,
-              let reason = AVCaptureSession.InterruptionReason(rawValue: reasonIntegerValue),
-              let session = notification.object as? AVCaptureSession else {
+              let reason = AVCaptureSession.InterruptionReason(rawValue: reasonIntegerValue) else {
+            delegate?.mixer(self, sessionWasInterrupted: session, reason: nil)
             return
         }
         delegate?.mixer(self, sessionWasInterrupted: session, reason: reason)
@@ -425,13 +427,7 @@ extension IOMixer: Running {
 
     @objc
     private func sessionInterruptionEnded(_ notification: Notification) {
-        guard let userInfoValue = notification.userInfo?[AVCaptureSessionInterruptionReasonKey] as AnyObject?,
-              let reasonIntegerValue = userInfoValue.integerValue,
-              let reason = AVCaptureSession.InterruptionReason(rawValue: reasonIntegerValue),
-              let session = notification.object as? AVCaptureSession else {
-            return
-        }
-        delegate?.mixer(self, sessionInterruptionEnded: session, reason: reason)
+        delegate?.mixer(self, sessionInterruptionEnded: session)
     }
     #endif
 }

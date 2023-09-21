@@ -16,9 +16,9 @@ public protocol NetStreamDelegate: AnyObject {
     func stream(_ stream: NetStream, didOutput video: CMSampleBuffer)
     #if os(iOS)
     /// Tells the receiver to session was interrupted.
-    func stream(_ stream: NetStream, sessionWasInterrupted session: AVCaptureSession, reason: AVCaptureSession.InterruptionReason)
+    func stream(_ stream: NetStream, sessionWasInterrupted session: AVCaptureSession, reason: AVCaptureSession.InterruptionReason?)
     /// Tells the receiver to session interrupted ended.
-    func stream(_ stream: NetStream, sessionInterruptionEnded session: AVCaptureSession, reason: AVCaptureSession.InterruptionReason)
+    func stream(_ stream: NetStream, sessionInterruptionEnded session: AVCaptureSession)
     #endif
     /// Tells the receiver to video codec error occured.
     func stream(_ stream: NetStream, videoCodecErrorOccurred error: VideoCodec.Error)
@@ -33,14 +33,7 @@ public protocol NetStreamDelegate: AnyObject {
 /// The `NetStream` class is the foundation of a RTMPStream, HTTPStream.
 open class NetStream: NSObject {
     /// The lockQueue.
-    public let lockQueue: DispatchQueue = {
-        let queue = DispatchQueue(label: "com.haishinkit.HaishinKit.NetStream.lock")
-        queue.setSpecific(key: queueKey, value: queueValue)
-        return queue
-    }()
-
-    private static let queueKey = DispatchSpecificKey<UnsafeMutableRawPointer>()
-    private static let queueValue = UnsafeMutableRawPointer.allocate(byteCount: 1, alignment: 1)
+    public let lockQueue: DispatchQueue = .init(label: "com.haishinkit.HaishinKit.NetStream.lock")
 
     /// The mixer object.
     public private(set) lazy var mixer: IOMixer = {
@@ -48,8 +41,19 @@ open class NetStream: NSObject {
         mixer.delegate = self
         return mixer
     }()
+
     /// Specifies the delegate of the NetStream.
     public weak var delegate: (any NetStreamDelegate)?
+
+    /// Specifies the audio monitoring enabled or not.
+    public var isMonitoringEnabled: Bool {
+        get {
+            mixer.audioIO.isMonitoringEnabled
+        }
+        set {
+            mixer.audioIO.isMonitoringEnabled = newValue
+        }
+    }
 
     /// Specifies the context object.
     public var context: CIContext {
@@ -154,10 +158,10 @@ open class NetStream: NSObject {
     /// Specifies the audio compression properties.
     public var audioSettings: AudioCodecSettings {
         get {
-            mixer.audioIO.codec.settings
+            mixer.audioIO.settings
         }
         set {
-            mixer.audioIO.codec.settings = newValue
+            mixer.audioIO.settings = newValue
         }
     }
 
@@ -183,7 +187,7 @@ open class NetStream: NSObject {
     #if os(iOS) || os(macOS)
     /// Attaches the primary camera object.
     /// - Warning: This method can't use appendSampleBuffer at the same time.
-    open func attachCamera(_ device: AVCaptureDevice?, onError: ((_ error: Error) -> Void)? = nil) {
+    open func attachCamera(_ device: AVCaptureDevice?, onError: ((_ error: any Error) -> Void)? = nil) {
         lockQueue.async {
             do {
                 try self.mixer.videoIO.attachCamera(device)
@@ -196,7 +200,7 @@ open class NetStream: NSObject {
     /// Attaches the 2ndary camera  object for picture in picture.
     /// - Warning: This method can't use appendSampleBuffer at the same time.
     @available(iOS 13.0, *)
-    open func attachMultiCamera(_ device: AVCaptureDevice?, onError: ((_ error: Error) -> Void)? = nil) {
+    open func attachMultiCamera(_ device: AVCaptureDevice?, onError: ((_ error: any Error) -> Void)? = nil) {
         lockQueue.async {
             do {
                 try self.mixer.videoIO.attachMultiCamera(device)
@@ -208,7 +212,7 @@ open class NetStream: NSObject {
 
     /// Attaches the audio capture object.
     /// - Warning: This method can't use appendSampleBuffer at the same time.
-    open func attachAudio(_ device: AVCaptureDevice?, automaticallyConfiguresApplicationAudioSession: Bool = false, onError: ((_ error: Error) -> Void)? = nil) {
+    open func attachAudio(_ device: AVCaptureDevice?, automaticallyConfiguresApplicationAudioSession: Bool = false, onError: ((_ error: any Error) -> Void)? = nil) {
         lockQueue.async {
             do {
                 try self.mixer.audioIO.attachAudio(device, automaticallyConfiguresApplicationAudioSession: automaticallyConfiguresApplicationAudioSession)
@@ -272,20 +276,6 @@ open class NetStream: NSObject {
         }
     }
 
-    /// Register a audio effect.
-    public func registerAudioEffect(_ effect: AudioEffect) -> Bool {
-        mixer.audioIO.lockQueue.sync {
-            self.mixer.audioIO.registerEffect(effect)
-        }
-    }
-
-    /// Unregister a audio effect.
-    public func unregisterAudioEffect(_ effect: AudioEffect) -> Bool {
-        mixer.audioIO.lockQueue.sync {
-            self.mixer.audioIO.unregisterEffect(effect)
-        }
-    }
-
     /// Starts recording.
     public func startRecording(_ settings: [AVMediaType: [String: Any]] = IORecorder.defaultOutputSettings) {
         mixer.recorder.outputSettings = settings
@@ -324,12 +314,12 @@ extension NetStream: IOMixerDelegate {
     }
 
     #if os(iOS)
-    func mixer(_ mixer: IOMixer, sessionWasInterrupted session: AVCaptureSession, reason: AVCaptureSession.InterruptionReason) {
+    func mixer(_ mixer: IOMixer, sessionWasInterrupted session: AVCaptureSession, reason: AVCaptureSession.InterruptionReason?) {
         delegate?.stream(self, sessionWasInterrupted: session, reason: reason)
     }
 
-    func mixer(_ mixer: IOMixer, sessionInterruptionEnded session: AVCaptureSession, reason: AVCaptureSession.InterruptionReason) {
-        delegate?.stream(self, sessionInterruptionEnded: session, reason: reason)
+    func mixer(_ mixer: IOMixer, sessionInterruptionEnded session: AVCaptureSession) {
+        delegate?.stream(self, sessionInterruptionEnded: session)
     }
     #endif
 }

@@ -7,7 +7,6 @@ import VideoToolbox
 final class LiveViewController: UIViewController {
     private static let maxRetryCount: Int = 5
 
-    @IBOutlet private weak var lfView: MTHKView!
     @IBOutlet private weak var currentFPSLabel: UILabel!
     @IBOutlet private weak var publishButton: UIButton!
     @IBOutlet private weak var pauseButton: UIButton!
@@ -18,6 +17,8 @@ final class LiveViewController: UIViewController {
     @IBOutlet private weak var audioBitrateSlider: UISlider!
     @IBOutlet private weak var fpsControl: UISegmentedControl!
     @IBOutlet private weak var effectSegmentControl: UISegmentedControl!
+    @IBOutlet private weak var audioDevicePicker: UIPickerView!
+    @IBOutlet private weak var audioMonoStereoSegmentCOntrol: UISegmentedControl!
 
     private var pipIntentView = UIView()
     private var rtmpConnection = RTMPConnection()
@@ -27,6 +28,7 @@ final class LiveViewController: UIViewController {
     private var currentPosition: AVCaptureDevice.Position = .back
     private var retryCount: Int = 0
     private var videoBitRate = VideoCodecSettings.default.bitRate
+    private var preferedStereo = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -43,6 +45,8 @@ final class LiveViewController: UIViewController {
         if let orientation = DeviceUtil.videoOrientation(by: UIApplication.shared.statusBarOrientation) {
             rtmpStream.videoOrientation = orientation
         }
+
+        rtmpStream.isMonitoringEnabled = DeviceUtil.isHeadphoneConnected()
 
         rtmpStream.audioSettings = AudioCodecSettings(
             bitRate: 64 * 1000
@@ -70,19 +74,21 @@ final class LiveViewController: UIViewController {
         logger.info("viewWillAppear")
         super.viewWillAppear(animated)
         let back = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: currentPosition)
-        rtmpStream.attachCamera(back) { error in
-            logger.warn(error)
-        }
+
+        // If you're using multi-camera functionality, please make sure to call the attachMultiCamera method first. This is required for iOS 14 and 15, among others.
         if #available(iOS 13.0, *) {
             let front = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
             rtmpStream.videoCapture(for: 1)?.isVideoMirrored = true
             rtmpStream.attachMultiCamera(front)
         }
-        rtmpStream.attachAudio(AVCaptureDevice.default(for: .audio)) { error in
+        rtmpStream.attachCamera(back) { error in
+            logger.warn(error)
+        }
+        rtmpStream.attachAudio(AVCaptureDevice.default(for: .audio), automaticallyConfiguresApplicationAudioSession: false) { error in
             logger.warn(error)
         }
         rtmpStream.addObserver(self, forKeyPath: "currentFPS", options: .new, context: nil)
-        lfView?.attachStream(rtmpStream)
+        (view as? (any NetStreamDrawable))?.attachStream(rtmpStream)
         NotificationCenter.default.addObserver(self, selector: #selector(didInterruptionNotification(_:)), name: AVAudioSession.interruptionNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(didRouteChangeNotification(_:)), name: AVAudioSession.routeChangeNotification, object: nil)
     }
@@ -248,6 +254,23 @@ final class LiveViewController: UIViewController {
         }
     }
 
+    private func setEnabledPreferredInputBuiltInMic(_ isEnabled: Bool) {
+        let session = AVAudioSession.sharedInstance()
+        do {
+            if isEnabled {
+                guard
+                    let availableInputs = session.availableInputs,
+                    let builtInMicInput = availableInputs.first(where: { $0.portType == .builtInMic }) else {
+                    return
+                }
+                try session.setPreferredInput(builtInMicInput)
+            } else {
+                try session.setPreferredInput(nil)
+            }
+        } catch {
+        }
+    }
+
     @IBAction private func onFPSValueChanged(_ segment: UISegmentedControl) {
         switch segment.selectedSegmentIndex {
         case 0:
@@ -277,6 +300,18 @@ final class LiveViewController: UIViewController {
         }
     }
 
+    @IBAction private func onStereoMonoChanged(_ segment: UISegmentedControl) {
+        switch segment.selectedSegmentIndex {
+        case 0:
+            preferedStereo = false
+        case 1:
+            preferedStereo = true
+            pickerView(audioDevicePicker, didSelectRow: audioDevicePicker.selectedRow(inComponent: 0), inComponent: 0)
+        default:
+            break
+        }
+    }
+
     @objc
     private func didInterruptionNotification(_ notification: Notification) {
         logger.info(notification)
@@ -285,6 +320,21 @@ final class LiveViewController: UIViewController {
     @objc
     private func didRouteChangeNotification(_ notification: Notification) {
         logger.info(notification)
+        if AVAudioSession.sharedInstance().inputDataSources?.isEmpty == true {
+            setEnabledPreferredInputBuiltInMic(false)
+            audioMonoStereoSegmentCOntrol.isHidden = true
+            audioDevicePicker.isHidden = true
+        } else {
+            setEnabledPreferredInputBuiltInMic(true)
+            audioMonoStereoSegmentCOntrol.isHidden = false
+            audioDevicePicker.isHidden = false
+        }
+        audioDevicePicker.reloadAllComponents()
+        if DeviceUtil.isHeadphoneDisconnected(notification) {
+            rtmpStream.isMonitoringEnabled = false
+        } else {
+            rtmpStream.isMonitoringEnabled = DeviceUtil.isHeadphoneConnected()
+        }
     }
 
     @objc
@@ -332,5 +382,49 @@ extension LiveViewController: IORecorderDelegate {
                 print(error)
             }
         })
+    }
+}
+
+extension LiveViewController: UIPickerViewDelegate {
+    // MARK: UIPickerViewDelegate
+    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+        let session = AVAudioSession.sharedInstance()
+        guard let preferredInput = session.preferredInput,
+              let newDataSource = preferredInput.dataSources?[row],
+              let supportedPolarPatterns = newDataSource.supportedPolarPatterns else {
+            return
+        }
+        do {
+            if #available(iOS 14.0, *) {
+                if preferedStereo && supportedPolarPatterns.contains(.stereo) {
+                    try newDataSource.setPreferredPolarPattern(.stereo)
+                    logger.info("stereo")
+                } else {
+                    audioMonoStereoSegmentCOntrol.selectedSegmentIndex = 0
+                    logger.info("mono")
+                }
+            }
+            try preferredInput.setPreferredDataSource(newDataSource)
+        } catch {
+            logger.warn("can't set supported setPreferredDataSource")
+        }
+        rtmpStream.attachAudio(AVCaptureDevice.default(for: .audio), automaticallyConfiguresApplicationAudioSession: false) { error in
+            logger.warn(error)
+        }
+    }
+}
+
+extension LiveViewController: UIPickerViewDataSource {
+    // MARK: UIPickerViewDataSource
+    func numberOfComponents(in pickerView: UIPickerView) -> Int {
+        return 1
+    }
+
+    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+        return AVAudioSession.sharedInstance().preferredInput?.dataSources?.count ?? 0
+    }
+
+    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+        return AVAudioSession.sharedInstance().preferredInput?.dataSources?[row].dataSourceName ?? ""
     }
 }
