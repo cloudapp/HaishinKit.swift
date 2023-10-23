@@ -2,24 +2,83 @@ import Accelerate
 import AVFoundation
 
 private let kIOAudioResampler_frameCapacity: AVAudioFrameCount = 1024
-private let kIOAudioResampler_presentationTimeStamp: CMTime = .zero
+private let kIOAudioResampler_sampleTime: AVAudioFramePosition = 0
 
 protocol IOAudioResamplerDelegate: AnyObject {
     func resampler(_ resampler: IOAudioResampler<Self>, didOutput audioFormat: AVAudioFormat)
-    func resampler(_ resampler: IOAudioResampler<Self>, didOutput audioPCMBuffer: AVAudioPCMBuffer, presentationTimeStamp: CMTime)
+    func resampler(_ resampler: IOAudioResampler<Self>, didOutput audioPCMBuffer: AVAudioPCMBuffer, when: AVAudioTime)
     func resampler(_ resampler: IOAudioResampler<Self>, errorOccurred error: AudioCodec.Error)
 }
 
-final class IOAudioResampler<T: IOAudioResamplerDelegate> {
-    var settings: AudioCodecSettings = .default {
-        didSet {
-            guard var inSourceFormat, settings.invalidateConverter(oldValue) else {
-                return
+struct IOAudioResamplerSettings {
+    let sampleRate: Float64
+    let channels: UInt32
+    let downmix: Bool
+    let channelMap: [NSNumber]?
+
+    init(sampleRate: Float64 = 0, channels: UInt32 = 0, downmix: Bool = false, channelMap: [NSNumber]? = nil) {
+        self.sampleRate = sampleRate
+        self.channels = channels
+        self.downmix = downmix
+        self.channelMap = channelMap
+    }
+
+    func invalidate(_ oldValue: IOAudioResamplerSettings) -> Bool {
+        return !(sampleRate == oldValue.sampleRate &&
+                    channels == oldValue.channels)
+    }
+
+    func apply(_ converter: AVAudioConverter?, oldValue: IOAudioResamplerSettings?) {
+        guard let converter else {
+            return
+        }
+        if converter.downmix != downmix {
+            converter.downmix = downmix
+        }
+        if let channelMap {
+            converter.channelMap = channelMap
+        } else {
+            switch converter.outputFormat.channelCount {
+            case 1:
+                converter.channelMap = [0]
+            case 2:
+                converter.channelMap = (converter.inputFormat.channelCount == 1) ? [0, 0] : [0, 1]
+            default:
+                logger.error("channelCount must be 2 or less.")
             }
-            setUp(&inSourceFormat)
+        }
+    }
+
+    func makeOutputFormat(_ inputFormat: AVAudioFormat?) -> AVAudioFormat? {
+        guard let inputFormat else {
+            return nil
+        }
+        return .init(
+            commonFormat: inputFormat.commonFormat,
+            sampleRate: min(sampleRate == 0 ? inputFormat.sampleRate : sampleRate, AudioCodecSettings.mamimumSampleRate),
+            channels: min(channels == 0 ? inputFormat.channelCount : channels, AudioCodecSettings.maximumNumberOfChannels),
+            interleaved: inputFormat.isInterleaved
+        )
+    }
+}
+
+final class IOAudioResampler<T: IOAudioResamplerDelegate> {
+    var settings: IOAudioResamplerSettings = .init() {
+        didSet {
+            if settings.invalidate(oldValue) {
+                if var inSourceFormat {
+                    setUp(&inSourceFormat)
+                }
+            } else {
+                settings.apply(audioConverter, oldValue: oldValue)
+            }
         }
     }
     weak var delegate: T?
+
+    var inputFormat: AVAudioFormat? {
+        return audioConverter?.inputFormat
+    }
 
     var outputFormat: AVAudioFormat? {
         return audioConverter?.outputFormat
@@ -33,7 +92,6 @@ final class IOAudioResampler<T: IOAudioResamplerDelegate> {
             setUp(&inSourceFormat)
         }
     }
-    private var sampleRate: Int32 = 0
     private var ringBuffer: IOAudioRingBuffer?
     private var inputBuffer: AVAudioPCMBuffer?
     private var outputBuffer: AVAudioPCMBuffer?
@@ -42,19 +100,36 @@ final class IOAudioResampler<T: IOAudioResamplerDelegate> {
             guard let audioConverter else {
                 return
             }
-            audioConverter.channelMap = settings.makeChannelMap(Int(audioConverter.inputFormat.channelCount))
+            settings.apply(audioConverter, oldValue: nil)
             audioConverter.primeMethod = .normal
             delegate?.resampler(self, didOutput: audioConverter.outputFormat)
         }
     }
-    private var presentationTimeStamp: CMTime = kIOAudioResampler_presentationTimeStamp
+    private var sampleTime: AVAudioFramePosition = kIOAudioResampler_sampleTime
 
     func appendSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
         inSourceFormat = sampleBuffer.formatDescription?.audioStreamBasicDescription
-        guard let inputBuffer, let outputBuffer, let ringBuffer else {
+        if sampleTime == kIOAudioResampler_sampleTime {
+            sampleTime = sampleBuffer.presentationTimeStamp.value
+        }
+        ringBuffer?.appendSampleBuffer(sampleBuffer)
+        resample()
+    }
+
+    func appendAudioPCMBuffer(_ audioBuffer: AVAudioPCMBuffer, when: AVAudioTime) {
+        inSourceFormat = audioBuffer.format.formatDescription.audioStreamBasicDescription
+        if sampleTime == kIOAudioResampler_sampleTime {
+            sampleTime = when.sampleTime
+        }
+        ringBuffer?.appendAudioPCMBuffer(audioBuffer, when: when)
+        resample()
+    }
+
+    @inline(__always)
+    private func resample() {
+        guard let outputBuffer, let inputBuffer, let ringBuffer else {
             return
         }
-        ringBuffer.appendSampleBuffer(sampleBuffer)
         var status: AVAudioConverterOutputStatus? = .endOfStream
         repeat {
             var error: NSError?
@@ -71,11 +146,8 @@ final class IOAudioResampler<T: IOAudioResamplerDelegate> {
             }
             switch status {
             case .haveData:
-                if presentationTimeStamp == .zero {
-                    presentationTimeStamp = CMTime(seconds: sampleBuffer.presentationTimeStamp.seconds, preferredTimescale: sampleRate)
-                }
-                delegate?.resampler(self, didOutput: outputBuffer, presentationTimeStamp: presentationTimeStamp)
-                self.presentationTimeStamp = CMTimeAdd(presentationTimeStamp, .init(value: 1024, timescale: sampleRate))
+                delegate?.resampler(self, didOutput: outputBuffer, when: .init(sampleTime: sampleTime, atRate: outputBuffer.format.sampleRate))
+                sampleTime += 1024
             case .error:
                 if let error {
                     delegate?.resampler(self, errorOccurred: .failedToConvert(error: error))
@@ -89,9 +161,9 @@ final class IOAudioResampler<T: IOAudioResamplerDelegate> {
     private func setUp(_ inSourceFormat: inout AudioStreamBasicDescription) {
         let inputFormat = AVAudioFormatFactory.makeAudioFormat(&inSourceFormat)
         let outputFormat = settings.makeOutputFormat(inputFormat) ?? inputFormat
-        ringBuffer = .init(&inSourceFormat)
         if let inputFormat {
             inputBuffer = .init(pcmFormat: inputFormat, frameCapacity: 1024 * 4)
+            ringBuffer = .init(inputFormat)
         }
         if let outputFormat {
             outputBuffer = .init(pcmFormat: outputFormat, frameCapacity: kIOAudioResampler_frameCapacity)
@@ -100,8 +172,7 @@ final class IOAudioResampler<T: IOAudioResamplerDelegate> {
             if logger.isEnabledFor(level: .info) {
                 logger.info("inputFormat:", inputFormat, ",outputFormat:", outputFormat)
             }
-            sampleRate = Int32(outputFormat.sampleRate)
-            presentationTimeStamp = .zero
+            sampleTime = kIOAudioResampler_sampleTime
             audioConverter = .init(from: inputFormat, to: outputFormat)
         } else {
             delegate?.resampler(self, errorOccurred: .failedToCreate(from: inputFormat, to: outputFormat))

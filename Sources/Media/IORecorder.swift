@@ -149,6 +149,15 @@ public class IORecorder {
         }
     }
 
+    func appendAudioPCMBuffer(_ audioPCMBuffer: AVAudioPCMBuffer, when: AVAudioTime) {
+        guard isRunning.value else {
+            return
+        }
+        if let sampleBuffer = audioPCMBuffer.makeSampleBuffer(when) {
+            appendSampleBuffer(sampleBuffer)
+        }
+    }
+
     func finishWriting() {
         guard let writer = writer, writer.status == .writing else {
             delegate?.recorder(self, errorOccured: .failedToFinishWriting(error: writer?.error))

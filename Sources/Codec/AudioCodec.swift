@@ -7,7 +7,7 @@ public protocol AudioCodecDelegate: AnyObject {
     /// Tells the receiver to output an AVAudioFormat.
     func audioCodec(_ codec: AudioCodec, didOutput audioFormat: AVAudioFormat)
     /// Tells the receiver to output an encoded or decoded CMSampleBuffer.
-    func audioCodec(_ codec: AudioCodec, didOutput audioBuffer: AVAudioBuffer, presentationTimeStamp: CMTime)
+    func audioCodec(_ codec: AudioCodec, didOutput audioBuffer: AVAudioBuffer, when: AVAudioTime)
     /// Tells the receiver to occured an error.
     func audioCodec(_ codec: AudioCodec, errorOccurred error: AudioCodec.Error)
 }
@@ -37,20 +37,24 @@ public class AudioCodec {
         }
     }
     var lockQueue = DispatchQueue(label: "com.haishinkit.HaishinKit.AudioCodec.lock")
-    var inSourceFormat: AudioStreamBasicDescription? {
+    var inputFormat: AVAudioFormat? {
         didSet {
-            guard var inSourceFormat, inSourceFormat != oldValue else {
+            guard inputFormat != oldValue else {
                 return
             }
+            cursor = 0
             inputBuffers.removeAll()
             outputBuffers.removeAll()
-            audioConverter = makeAudioConverter(&inSourceFormat)
+            audioConverter = makeAudioConverter()
             for _ in 0..<settings.format.bufferCounts {
                 if let inputBuffer = makeInputBuffer() {
                     inputBuffers.append(inputBuffer)
                 }
             }
         }
+    }
+    var outputFormat: AVAudioFormat? {
+        return audioConverter?.outputFormat
     }
     private var cursor: Int = 0
     private var inputBuffers: [AVAudioBuffer] = []
@@ -77,7 +81,7 @@ public class AudioCodec {
                 buffer.byteLength = UInt32(byteCount)
                 if let blockBuffer = sampleBuffer.dataBuffer {
                     CMBlockBufferCopyDataBytes(blockBuffer, atOffset: offset + ADTSHeader.size, dataLength: byteCount, destination: buffer.data)
-                    appendAudioBuffer(buffer, presentationTimeStamp: presentationTimeStamp)
+                    appendAudioBuffer(buffer, when: presentationTimeStamp.makeAudioTime())
                     presentationTimeStamp = CMTimeAdd(presentationTimeStamp, CMTime(value: CMTimeValue(1024), timescale: sampleBuffer.presentationTimeStamp.timescale))
                     offset += sampleSize
                 }
@@ -87,7 +91,7 @@ public class AudioCodec {
         }
     }
 
-    func appendAudioBuffer(_ audioBuffer: AVAudioBuffer, presentationTimeStamp: CMTime) {
+    func appendAudioBuffer(_ audioBuffer: AVAudioBuffer, when: AVAudioTime) {
         guard let audioConverter, isRunning.value else {
             return
         }
@@ -107,7 +111,7 @@ public class AudioCodec {
         }
         switch outputStatus {
         case .haveData:
-            delegate?.audioCodec(self, didOutput: outputBuffer, presentationTimeStamp: presentationTimeStamp)
+            delegate?.audioCodec(self, didOutput: outputBuffer, when: when)
         case .error:
             if let error {
                 delegate?.audioCodec(self, errorOccurred: .failedToConvert(error: error))
@@ -122,10 +126,10 @@ public class AudioCodec {
     }
 
     private func makeInputBuffer() -> AVAudioBuffer? {
-        guard let inputFormat = audioConverter?.inputFormat else {
+        guard let inputFormat else {
             return nil
         }
-        switch inSourceFormat?.mFormatID {
+        switch inputFormat.formatDescription.audioStreamBasicDescription?.mFormatID {
         case kAudioFormatLinearPCM:
             let buffer = AVAudioPCMBuffer(pcmFormat: inputFormat, frameCapacity: Self.frameCapacity)
             buffer?.frameLength = Self.frameCapacity
@@ -135,10 +139,10 @@ public class AudioCodec {
         }
     }
 
-    private func makeAudioConverter(_ inSourceFormat: inout AudioStreamBasicDescription) -> AVAudioConverter? {
+    private func makeAudioConverter() -> AVAudioConverter? {
         guard
-            let inputFormat = AVAudioFormatFactory.makeAudioFormat(&inSourceFormat),
-            let outputFormat = settings.format.makeAudioFormat(inSourceFormat) else {
+            let inputFormat,
+            let outputFormat = settings.format.makeAudioFormat(inputFormat) else {
             return nil
         }
         if logger.isEnabledFor(level: .info) {
@@ -187,6 +191,7 @@ extension AudioCodec: Running {
             }
             if let audioConverter = self.audioConverter {
                 self.delegate?.audioCodec(self, didOutput: audioConverter.outputFormat)
+                audioConverter.reset()
             }
             self.isRunning.mutate { $0 = true }
         }
@@ -197,8 +202,6 @@ extension AudioCodec: Running {
             guard self.isRunning.value else {
                 return
             }
-            self.inSourceFormat = nil
-            self.audioConverter = nil
             self.isRunning.mutate { $0 = false }
         }
     }

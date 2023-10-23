@@ -5,7 +5,7 @@
 [![Swift Compatibility](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fshogo4405%2FHaishinKit.swift%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/shogo4405/HaishinKit.swift)
 [![GitHub license](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://raw.githubusercontent.com/shogo4405/HaishinKit.swift/master/LICENSE.md)
 
-* Camera and Microphone streaming library via RTMP, HLS for iOS, macOS, tvOS.
+* Camera and Microphone streaming library via RTMP, HLS and SRT for iOS, macOS, tvOS.
 * README.md contains unreleased content, which can be tested on the main branch.
 * [API Documentation](https://shogo4405.github.io/HaishinKit.swift/documentation/haishinkit)
 
@@ -46,8 +46,7 @@ Project name    |Notes       |License
 - [x] Authentication
 - [x] Publish and Recording
 - [x] _Playback (Beta)_
-- [x] Adaptive bitrate streaming
-  - [x] Handling (see also [#1153](/../../issues/1153))
+- [x] Adaptive bitrate streaming (see also [#1308](/../../issues/1308))
 - [ ] Action Message Format
   - [x] AMF0
   - [ ] AMF3
@@ -57,13 +56,13 @@ Project name    |Notes       |License
   - [x] _Tunneled (RTMPT over SSL/TLS) (Technical Preview)_
 - [x] _RTMPT (Technical Preview)_
 - [x] ReplayKit Live as a Broadcast Upload Extension
-- [x] Enhanced RTMP
+- [x] [Enhanced RTMP](https://github.com/veovera/enhanced-rtmp)
 
 ### HLS
 - [x] HTTPService
 - [x] HLS Publish
 
-### SRT
+### SRT(beta)
 - [x] Publish and Recording (H264/AAC)
 - [x] Playback(beta)
 - [ ] mode
@@ -90,16 +89,17 @@ rtmpStream.attachAudio(AVCaptureDevice.default(for: .audio))
 ```
 
 ### Rendering
-|Features|[HKView](https://shogo4405.github.io/HaishinKit.swift/Classes/HKView.html)|[PiPHKView](https://shogo4405.github.io/HaishinKit.swift/Classes/PiPHKView.html)|[MTHKView](https://shogo4405.github.io/HaishinKit.swift/Classes/MTHKView.html)|
-|-|:---:|:---:|:---:|
-|Engine|AVCaptureVideoPreviewLayer|AVSampleBufferDisplayLayer|Metal|
-|Publish|✔|✔|✔|
-|Playback|<br />|✔|✔|
-|VisualEffect|<br />|✔|✔|
-|PictureInPicture|<br />|✔|<br />|
-|MultiCamera|<br />|✔|✔|
+|Features|[PiPHKView](https://shogo4405.github.io/HaishinKit.swift/Classes/PiPHKView.html)|[MTHKView](https://shogo4405.github.io/HaishinKit.swift/Classes/MTHKView.html)|
+|-|:---:|:---:|
+|Engine|AVSampleBufferDisplayLayer|Metal|
+|Publish|✔|✔|
+|Playback|✔|✔|
+|VisualEffect|✔|✔|
+|MultiCamera|✔|✔|
+|PictureInPicture|✔|<br />|
 
 ### Others
+- [x] tvOS 17.0 for AVCaptureSession.
 - [x] [Support multitasking camera access.](https://developer.apple.com/documentation/avfoundation/capture_setup/accessing_the_camera_while_multitasking)
 - [x] Support "Allow app extension API only" option
 

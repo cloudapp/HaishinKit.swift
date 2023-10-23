@@ -4,28 +4,28 @@ import CoreMedia
 #if canImport(ScreenCaptureKit)
 import ScreenCaptureKit
 #endif
-#if os(iOS)
+#if os(iOS) || os(tvOS)
 import UIKit
 #endif
 
 /// The interface a NetStream uses to inform its delegate.
 public protocol NetStreamDelegate: AnyObject {
     /// Tells the receiver to playback an audio packet incoming.
-    func stream(_ stream: NetStream, didOutput audio: AVAudioBuffer, presentationTimeStamp: CMTime)
+    func stream(_ stream: NetStream, didOutput audio: AVAudioBuffer, when: AVAudioTime)
     /// Tells the receiver to playback a video packet incoming.
     func stream(_ stream: NetStream, didOutput video: CMSampleBuffer)
-    #if os(iOS)
+    #if os(iOS) || os(tvOS)
     /// Tells the receiver to session was interrupted.
+    @available(tvOS 17.0, *)
     func stream(_ stream: NetStream, sessionWasInterrupted session: AVCaptureSession, reason: AVCaptureSession.InterruptionReason?)
     /// Tells the receiver to session interrupted ended.
+    @available(tvOS 17.0, *)
     func stream(_ stream: NetStream, sessionInterruptionEnded session: AVCaptureSession)
     #endif
     /// Tells the receiver to video codec error occured.
     func stream(_ stream: NetStream, videoCodecErrorOccurred error: VideoCodec.Error)
     /// Tells the receiver to audio codec error occured.
     func stream(_ stream: NetStream, audioCodecErrorOccurred error: AudioCodec.Error)
-    /// Tells the receiver to will drop video frame.
-    func streamWillDropFrame(_ stream: NetStream) -> Bool
     /// Tells the receiver to the stream opened.
     func streamDidOpen(_ stream: NetStream)
 }
@@ -42,7 +42,15 @@ open class NetStream: NSObject {
         return mixer
     }()
 
-    /// Specifies the delegate of the NetStream.
+    /// Specifies the adaptibe bitrate strategy.
+    public var bitrateStrategy: any NetBitRateStrategyConvertible = NetBitRateStrategy.shared {
+        didSet {
+            bitrateStrategy.stream = self
+            bitrateStrategy.setUp()
+        }
+    }
+
+    /// Specifies the delegate..
     public weak var delegate: (any NetStreamDelegate)?
 
     /// Specifies the audio monitoring enabled or not.
@@ -65,11 +73,11 @@ open class NetStream: NSObject {
         }
     }
 
-    #if os(iOS) || os(macOS)
+    #if os(iOS) || os(macOS) || os(tvOS)
     /// Specifiet the device torch indicating wheter the turn on(TRUE) or not(FALSE).
     public var torch: Bool {
         get {
-            var torch: Bool = false
+            var torch = false
             lockQueue.sync {
                 torch = self.mixer.videoIO.torch
             }
@@ -99,6 +107,7 @@ open class NetStream: NSObject {
     }
 
     /// Specifies the sessionPreset for the AVCaptureSession.
+    @available(tvOS 17.0, *)
     public var sessionPreset: AVCaptureSession.Preset {
         get {
             var sessionPreset: AVCaptureSession.Preset = .default
@@ -113,7 +122,9 @@ open class NetStream: NSObject {
             }
         }
     }
+    #endif
 
+    #if os(iOS) || os(macOS)
     /// Specifies the video orientation for stream.
     public var videoOrientation: AVCaptureVideoOrientation {
         get {
@@ -123,6 +134,7 @@ open class NetStream: NSObject {
             mixer.videoIO.videoOrientation = newValue
         }
     }
+    #endif
 
     /// Specifies the multi camera capture properties.
     public var multiCamCaptureSettings: MultiCamCaptureSettings {
@@ -133,7 +145,6 @@ open class NetStream: NSObject {
             mixer.videoIO.multiCamCaptureSettings = newValue
         }
     }
-    #endif
 
     /// Specifies the hasAudio indicies whether no signal audio or not.
     public var hasAudio: Bool {
@@ -168,25 +179,26 @@ open class NetStream: NSObject {
     /// Specifies the video compression properties.
     public var videoSettings: VideoCodecSettings {
         get {
-            mixer.videoIO.codec.settings
+            mixer.videoIO.settings
         }
         set {
-            mixer.videoIO.codec.settings = newValue
+            mixer.videoIO.settings = newValue
         }
     }
 
     /// Creates a NetStream object.
     override public init() {
         super.init()
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
         NotificationCenter.default.addObserver(self, selector: #selector(didEnterBackground(_:)), name: UIApplication.didEnterBackgroundNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(willEnterForeground(_:)), name: UIApplication.willEnterForegroundNotification, object: nil)
         #endif
     }
 
-    #if os(iOS) || os(macOS)
+    #if os(iOS) || os(macOS) || os(tvOS)
     /// Attaches the primary camera object.
     /// - Warning: This method can't use appendSampleBuffer at the same time.
+    @available(tvOS 17.0, *)
     open func attachCamera(_ device: AVCaptureDevice?, onError: ((_ error: any Error) -> Void)? = nil) {
         lockQueue.async {
             do {
@@ -199,7 +211,7 @@ open class NetStream: NSObject {
 
     /// Attaches the 2ndary camera  object for picture in picture.
     /// - Warning: This method can't use appendSampleBuffer at the same time.
-    @available(iOS 13.0, *)
+    @available(iOS 13.0, tvOS 17.0, *)
     open func attachMultiCamera(_ device: AVCaptureDevice?, onError: ((_ error: any Error) -> Void)? = nil) {
         lockQueue.async {
             do {
@@ -212,6 +224,7 @@ open class NetStream: NSObject {
 
     /// Attaches the audio capture object.
     /// - Warning: This method can't use appendSampleBuffer at the same time.
+    @available(tvOS 17.0, *)
     open func attachAudio(_ device: AVCaptureDevice?, automaticallyConfiguresApplicationAudioSession: Bool = false, onError: ((_ error: any Error) -> Void)? = nil) {
         lockQueue.async {
             do {
@@ -222,15 +235,8 @@ open class NetStream: NSObject {
         }
     }
 
-    /// Attaches the screen input object.
-    @available(iOS, unavailable)
-    open func attachScreen(_ input: AVCaptureScreenInput?) {
-        lockQueue.async {
-            self.mixer.videoIO.attachScreen(input)
-        }
-    }
-
     /// Returns the IOVideoCaptureUnit by index.
+    @available(tvOS 17.0, *)
     public func videoCapture(for index: Int) -> IOVideoCaptureUnit? {
         return mixer.videoIO.lockQueue.sync {
             switch index {
@@ -245,7 +251,16 @@ open class NetStream: NSObject {
     }
     #endif
 
-    /// Append a CMSampleBuffer?.
+    #if os(macOS)
+    /// Attaches the screen input object.
+    public func attachScreen(_ input: AVCaptureScreenInput?) {
+        lockQueue.async {
+            self.mixer.videoIO.attachScreen(input)
+        }
+    }
+    #endif
+
+    /// Append a CMSampleBuffer.
     /// - Warning: This method can't use attachCamera or attachAudio method at the same time.
     open func appendSampleBuffer(_ sampleBuffer: CMSampleBuffer, options: [NSObject: AnyObject]? = nil) {
         switch sampleBuffer.formatDescription?._mediaType {
@@ -259,6 +274,14 @@ open class NetStream: NSObject {
             }
         default:
             break
+        }
+    }
+
+    /// Append an AVAudioBuffer.
+    /// - Warning: This method can't use attachAudio method at the same time.
+    public func appendAudioBuffer(_ audioBuffer: AVAudioBuffer, when: AVAudioTime) {
+        mixer.audioIO.lockQueue.async {
+            self.mixer.audioIO.appendAudioBuffer(audioBuffer, when: when)
         }
     }
 
@@ -287,7 +310,7 @@ open class NetStream: NSObject {
         mixer.recorder.stopRunning()
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(tvOS)
     @objc
     private func didEnterBackground(_ notification: Notification) {
         // Require main thread. Otherwise the microphone cannot be used in the background.
@@ -309,15 +332,25 @@ extension NetStream: IOMixerDelegate {
         delegate?.stream(self, didOutput: video)
     }
 
-    func mixer(_ mixer: IOMixer, didOutput audio: AVAudioPCMBuffer, presentationTimeStamp: CMTime) {
-        delegate?.stream(self, didOutput: audio, presentationTimeStamp: presentationTimeStamp)
+    func mixer(_ mixer: IOMixer, didOutput audio: AVAudioPCMBuffer, when: AVAudioTime) {
+        delegate?.stream(self, didOutput: audio, when: when)
     }
 
-    #if os(iOS)
+    func mixer(_ mixer: IOMixer, audioCodecErrorOccurred error: AudioCodec.Error) {
+        delegate?.stream(self, audioCodecErrorOccurred: error)
+    }
+
+    func mixer(_ mixer: IOMixer, videoCodecErrorOccurred error: VideoCodec.Error) {
+        delegate?.stream(self, videoCodecErrorOccurred: error)
+    }
+
+    #if os(iOS) || os(tvOS)
+    @available(tvOS 17.0, *)
     func mixer(_ mixer: IOMixer, sessionWasInterrupted session: AVCaptureSession, reason: AVCaptureSession.InterruptionReason?) {
         delegate?.stream(self, sessionWasInterrupted: session, reason: reason)
     }
 
+    @available(tvOS 17.0, *)
     func mixer(_ mixer: IOMixer, sessionInterruptionEnded session: AVCaptureSession) {
         delegate?.stream(self, sessionInterruptionEnded: session)
     }

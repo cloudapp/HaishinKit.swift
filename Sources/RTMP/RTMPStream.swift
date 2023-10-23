@@ -180,7 +180,7 @@ open class RTMPStream: NetStream {
         }
     }
     /// Incoming audio plays on the stream or not.
-    open var receiveAudio = true {
+    public var receiveAudio = true {
         didSet {
             lockQueue.async {
                 guard self.readyState == .playing else {
@@ -198,7 +198,7 @@ open class RTMPStream: NetStream {
         }
     }
     /// Incoming video plays on the stream or not.
-    open var receiveVideo = true {
+    public var receiveVideo = true {
         didSet {
             lockQueue.async {
                 guard self.readyState == .playing else {
@@ -216,7 +216,7 @@ open class RTMPStream: NetStream {
         }
     }
     /// Pauses playback or publish of a video stream or not.
-    open var paused = false {
+    public var paused = false {
         didSet {
             lockQueue.async {
                 switch self.readyState {
@@ -289,7 +289,7 @@ open class RTMPStream: NetStream {
     }
 
     /// Plays a live stream from RTMPServer.
-    open func play(_ arguments: Any?...) {
+    public func play(_ arguments: Any?...) {
         // swiftlint:disable:next closure_body_length
         lockQueue.async {
             guard let name: String = arguments.first as? String else {
@@ -324,7 +324,7 @@ open class RTMPStream: NetStream {
     }
 
     /// Seeks the keyframe.
-    open func seek(_ offset: Double) {
+    public func seek(_ offset: Double) {
         lockQueue.async {
             guard self.readyState == .playing else {
                 return
@@ -341,7 +341,7 @@ open class RTMPStream: NetStream {
     }
 
     /// Sends streaming audio, vidoe and data message from client.
-    open func publish(_ name: String?, type: RTMPStream.HowToPublish = .live) {
+    public func publish(_ name: String?, type: RTMPStream.HowToPublish = .live) {
         // swiftlint:disable:next closure_body_length
         lockQueue.async {
             guard let name: String = name else {
@@ -382,12 +382,12 @@ open class RTMPStream: NetStream {
     }
 
     /// Stops playing or publishing and makes available other uses.
-    open func close() {
+    public func close() {
         close(withLockQueue: true)
     }
 
     /// Sends a message on a published stream to all subscribing clients.
-    open func send(handlerName: String, arguments: Any?...) {
+    public func send(handlerName: String, arguments: Any?...) {
         lockQueue.async {
             guard let rtmpConnection = self.rtmpConnection, self.readyState == .publishing else {
                 return
@@ -413,27 +413,27 @@ open class RTMPStream: NetStream {
     /// Creates flv metadata for a stream.
     open func makeMetaData() -> ASObject {
         var metadata: [String: Any] = [:]
-        #if os(iOS) || os(macOS)
-        if mixer.videoIO.capture.device != nil {
-            metadata["width"] = mixer.videoIO.codec.settings.videoSize.width
-            metadata["height"] = mixer.videoIO.codec.settings.videoSize.height
-            metadata["framerate"] = mixer.videoIO.frameRate
-            switch mixer.videoIO.codec.settings.format {
+        if mixer.videoIO.inputFormat != nil {
+            metadata["width"] = videoSettings.videoSize.width
+            metadata["height"] = videoSettings.videoSize.height
+            #if os(iOS) || os(macOS) || os(tvOS)
+            metadata["framerate"] = frameRate
+            #endif
+            switch videoSettings.format {
             case .h264:
                 metadata["videocodecid"] = FLVVideoCodec.avc.rawValue
             case .hevc:
                 metadata["videocodecid"] = FLVVideoFourCC.hevc.rawValue
             }
-            metadata["videodatarate"] = mixer.videoIO.codec.settings.bitRate / 1000
+            metadata["videodatarate"] = videoSettings.bitRate / 1000
         }
-        if mixer.audioIO.capture.device != nil {
+        if mixer.audioIO.inputFormat != nil {
             metadata["audiocodecid"] = FLVAudioCodec.aac.rawValue
-            metadata["audiodatarate"] = mixer.audioIO.codec.settings.bitRate / 1000
-            if let sampleRate = mixer.audioIO.codec.inSourceFormat?.mSampleRate {
-                metadata["audiosamplerate"] = sampleRate
+            metadata["audiodatarate"] = audioSettings.bitRate / 1000
+            if let outputFormat = mixer.audioIO.outputFormat {
+                metadata["audiosamplerate"] = outputFormat.sampleRate
             }
         }
-        #endif
         return metadata
     }
 
@@ -512,6 +512,7 @@ open class RTMPStream: NetStream {
             mixer.delegate = self
             mixer.startDecoding()
         case .publish:
+            bitrateStrategy.setUp()
             startedAt = .init()
             muxer.dispose()
             muxer.delegate = self
@@ -521,6 +522,11 @@ open class RTMPStream: NetStream {
             dataTimeStamps.removeAll()
             FCPublish()
         case .publishing:
+            #if os(iOS) || os(macOS) || os(tvOS)
+            if #available(tvOS 17.0, *), mixer.videoIO.capture.device != nil {
+                muxer.basetime = mixer.videoIO.presentationTimeStamp
+            }
+            #endif
             send(handlerName: "@setDataFrame", arguments: "onMetaData", makeMetaData())
             mixer.startEncoding(muxer)
         default:
@@ -630,9 +636,5 @@ extension RTMPStream: RTMPMuxerDelegate {
 
     func muxer(_ muxer: RTMPMuxer, audioCodecErrorOccurred error: AudioCodec.Error) {
         delegate?.stream(self, audioCodecErrorOccurred: error)
-    }
-
-    func muxerWillDropFrame(_ muxer: RTMPMuxer) -> Bool {
-        return delegate?.streamWillDropFrame(self) ?? false
     }
 }

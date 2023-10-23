@@ -1,7 +1,7 @@
 import AVFoundation
 import Foundation
 
-#if !os(tvOS)
+#if os(iOS) || os(tvOS) || os(macOS)
 @available(tvOS 17.0, *)
 final class IOAudioCaptureUnit: IOCaptureUnit {
     typealias Output = AVCaptureAudioDataOutput

@@ -1,8 +1,9 @@
-#if !os(tvOS)
 import AVFoundation
 import Foundation
 
+#if os(iOS) || os(tvOS) || os(macOS)
 /// An object that provides the interface to control the AVCaptureDevice's transport behavior.
+@available(tvOS 17.0, *)
 public class IOVideoCaptureUnit: IOCaptureUnit {
     /// The default videoSettings for a device.
     public static let defaultVideoSettings: [NSString: AnyObject] = [
@@ -13,15 +14,8 @@ public class IOVideoCaptureUnit: IOCaptureUnit {
 
     /// The current video device object.
     public private(set) var device: AVCaptureDevice?
-    var input: AVCaptureInput?
-    var output: Output? {
-        didSet {
-            output?.alwaysDiscardsLateVideoFrames = true
-            output?.videoSettings = IOVideoCaptureUnit.defaultVideoSettings as [String: Any]
-        }
-    }
-    var connection: AVCaptureConnection?
 
+    #if os(iOS) || os(macOS)
     /// Specifies the videoOrientation indicates whether to rotate the video flowing through the connection to a given orientation.
     public var videoOrientation: AVCaptureVideoOrientation = .portrait {
         didSet {
@@ -30,6 +24,7 @@ public class IOVideoCaptureUnit: IOCaptureUnit {
             }
         }
     }
+    #endif
 
     /// Spcifies the video mirroed indicates whether the video flowing through the connection should be mirrored about its vertical axis.
     public var isVideoMirrored = false {
@@ -50,6 +45,26 @@ public class IOVideoCaptureUnit: IOCaptureUnit {
         }
     }
     #endif
+
+    var input: AVCaptureInput?
+    var output: Output? {
+        didSet {
+            guard let output else {
+                return
+            }
+            output.alwaysDiscardsLateVideoFrames = true
+            #if os(iOS) || os(macOS)
+            if output.availableVideoPixelFormatTypes.contains(kCVPixelFormatType_32BGRA) {
+                output.videoSettings = IOVideoCaptureUnit.defaultVideoSettings as [String: Any]
+            }
+            #elseif os(tvOS)
+            if output.availableVideoPixelFormatTypes.contains(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange) {
+                output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: NSNumber(value: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange)]
+            }
+            #endif
+        }
+    }
+    var connection: AVCaptureConnection?
 
     func attachDevice(_ device: AVCaptureDevice?, videoUnit: IOVideoUnit) throws {
         setSampleBufferDelegate(nil)
@@ -82,9 +97,11 @@ public class IOVideoCaptureUnit: IOCaptureUnit {
             if $0.isVideoMirroringSupported {
                 $0.isVideoMirrored = isVideoMirrored
             }
+            #if os(iOS) || os(macOS)
             if $0.isVideoOrientationSupported {
                 $0.videoOrientation = videoOrientation
             }
+            #endif
             #if os(iOS)
             if $0.isVideoStabilizationSupported {
                 $0.preferredVideoStabilizationMode = preferredVideoStabilizationMode
@@ -94,7 +111,7 @@ public class IOVideoCaptureUnit: IOCaptureUnit {
         setSampleBufferDelegate(videoUnit)
     }
 
-    @available(iOS, unavailable)
+    #if os(macOS)
     func attachScreen(_ screen: AVCaptureScreenInput?, videoUnit: IOVideoUnit) {
         setSampleBufferDelegate(nil)
         detachSession(videoUnit.mixer?.session)
@@ -105,6 +122,7 @@ public class IOVideoCaptureUnit: IOCaptureUnit {
         attachSession(videoUnit.mixer?.session)
         setSampleBufferDelegate(videoUnit)
     }
+    #endif
 
     func setFrameRate(_ frameRate: Float64) {
         guard let device else {
@@ -148,7 +166,9 @@ public class IOVideoCaptureUnit: IOCaptureUnit {
 
     func setSampleBufferDelegate(_ videoUnit: IOVideoUnit?) {
         if let videoUnit {
+            #if os(iOS) || os(macOS)
             videoOrientation = videoUnit.videoOrientation
+            #endif
             setFrameRate(videoUnit.frameRate)
         }
         output?.setSampleBufferDelegate(videoUnit, queue: videoUnit?.lockQueue)

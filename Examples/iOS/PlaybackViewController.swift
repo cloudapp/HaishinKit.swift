@@ -123,7 +123,7 @@ extension PlaybackViewController: AVPictureInPictureSampleBufferPlaybackDelegate
 
 extension PlaybackViewController: NetStreamDelegate {
     // MARK: NetStreamDelegate
-    func stream(_ stream: NetStream, didOutput audio: AVAudioBuffer, presentationTimeStamp: CMTime) {
+    func stream(_ stream: NetStream, didOutput audio: AVAudioBuffer, when: AVAudioTime) {
     }
 
     func stream(_ stream: NetStream, didOutput video: CMSampleBuffer) {
@@ -139,10 +139,6 @@ extension PlaybackViewController: NetStreamDelegate {
     }
 
     func stream(_ stream: NetStream, audioCodecErrorOccurred error: HaishinKit.AudioCodec.Error) {
-    }
-
-    func streamWillDropFrame(_ stream: NetStream) -> Bool {
-        return false
     }
 
     func streamDidOpen(_ stream: NetStream) {

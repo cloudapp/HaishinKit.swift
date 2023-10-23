@@ -14,32 +14,25 @@ public extension AVCaptureSession.Preset {
 
 
 protocol IOMixerDelegate: AnyObject {
-    func mixer(_ mixer: IOMixer, didOutput audio: AVAudioPCMBuffer, presentationTimeStamp: CMTime)
+    func mixer(_ mixer: IOMixer, didOutput audio: AVAudioPCMBuffer, when: AVAudioTime)
     func mixer(_ mixer: IOMixer, didOutput video: CMSampleBuffer)
-    #if os(iOS)
+    func mixer(_ mixer: IOMixer, videoCodecErrorOccurred error: VideoCodec.Error)
+    func mixer(_ mixer: IOMixer, audioCodecErrorOccurred error: AudioCodec.Error)
+    #if os(iOS) || os(tvOS)
+    @available(tvOS 17.0, *)
     func mixer(_ mixer: IOMixer, sessionWasInterrupted session: AVCaptureSession, reason: AVCaptureSession.InterruptionReason?)
+    @available(tvOS 17.0, *)
     func mixer(_ mixer: IOMixer, sessionInterruptionEnded session: AVCaptureSession)
     #endif
 }
 
 /// An object that mixies audio and video for streaming.
-public class IOMixer {
+public final class IOMixer {
     /// The default fps for an IOMixer, value is 30.
     public static let defaultFrameRate: Float64 = 30
     /// The AVAudioEngine shared instance holder.
     public static let audioEngineHolder: InstanceHolder<AVAudioEngine> = .init {
         return AVAudioEngine()
-    }
-
-    enum MediaSync {
-        case video
-        case passthrough
-    }
-
-    enum ReadyState {
-        case standby
-        case encoding
-        case decoding
     }
 
     public var hasVideo: Bool {
@@ -60,71 +53,22 @@ public class IOMixer {
         }
     }
 
-    var audioFormat: AVAudioFormat? {
-        didSet {
-            guard let audioEngine else {
-                return
+    #if os(tvOS)
+    private var _session: Any?
+    /// The capture session instance.
+    @available(tvOS 17.0, *)
+    public var session: AVCaptureSession {
+        get {
+            if _session == nil {
+                _session = makeSession()
             }
-            nstry({
-                if let audioFormat = self.audioFormat {
-                    audioEngine.connect(self.mediaLink.playerNode, to: audioEngine.mainMixerNode, format: audioFormat)
-                } else {
-                    audioEngine.disconnectNodeInput(self.mediaLink.playerNode)
-                }
-            }, { exeption in
-                logger.warn(exeption)
-            })
+            return _session as! AVCaptureSession
+        }
+        set {
+            _session = newValue
         }
     }
-
-    private var readyState: ReadyState = .standby
-    private(set) lazy var audioEngine: AVAudioEngine? = {
-        return IOMixer.audioEngineHolder.retain()
-    }()
-
-    #if os(iOS) || os(macOS)
-    var isMultiCamSessionEnabled = false {
-        didSet {
-            guard oldValue != isMultiCamSessionEnabled else {
-                return
-            }
-            #if os(iOS)
-            session = makeSession()
-            #endif
-        }
-    }
-
-    var sessionPreset: AVCaptureSession.Preset = .default {
-        didSet {
-            guard sessionPreset != oldValue, session.canSetSessionPreset(sessionPreset) else {
-                return
-            }
-            session.beginConfiguration()
-            session.sessionPreset = sessionPreset
-            session.commitConfiguration()
-        }
-    }
-
-    var inBackgroundMode = false {
-        didSet {
-            guard inBackgroundMode != oldValue else {
-                return
-            }
-            if inBackgroundMode {
-                if !session.isMultitaskingCameraAccessEnabled {
-                    videoIO.multiCamCapture.detachSession(session)
-                    videoIO.capture.detachSession(session)
-                }
-            } else {
-                startCaptureSessionIfNeeded()
-                if !session.isMultitaskingCameraAccessEnabled {
-                    videoIO.capture.attachSession(session)
-                    videoIO.multiCamCapture.attachSession(session)
-                }
-            }
-        }
-    }
-
+    #elseif os(iOS) || os(macOS)
     /// The capture session instance.
     public internal(set) lazy var session: AVCaptureSession = makeSession() {
         didSet {
@@ -157,8 +101,6 @@ public class IOMixer {
         }
     }
 
-    var mediaSync = MediaSync.passthrough
-
     weak var delegate: (any IOMixerDelegate)?
 
     lazy var audioIO: IOAudioUnit = {
@@ -174,59 +116,112 @@ public class IOMixer {
     }()
 
     lazy var mediaLink: MediaLink = {
-        var mediaLink = MediaLink()
+        var mediaLink = MediaLink<IOMixer>()
         mediaLink.delegate = self
         return mediaLink
     }()
 
-    #if os(iOS) || os(macOS)
-    deinit {
-        if session.isRunning {
-            session.stopRunning()
+    var audioFormat: AVAudioFormat? {
+        didSet {
+            guard let audioEngine else {
+                return
+            }
+            nstry({
+                if let audioFormat = self.audioFormat {
+                    audioEngine.connect(self.mediaLink.playerNode, to: audioEngine.mainMixerNode, format: audioFormat)
+                } else {
+                    audioEngine.disconnectNodeInput(self.mediaLink.playerNode)
+                }
+            }, { exeption in
+                logger.warn(exeption)
+            })
         }
-        IOMixer.audioEngineHolder.release(audioEngine)
+    }
+
+    var isMultiCamSessionEnabled = false {
+        didSet {
+            guard oldValue != isMultiCamSessionEnabled else {
+                return
+            }
+            #if os(iOS)
+            session = makeSession()
+            #endif
+        }
+    }
+
+    #if os(tvOS)
+    private var _sessionPreset: Any?
+    @available(tvOS 17.0, *)
+    var sessionPreset: AVCaptureSession.Preset {
+        get {
+            if _sessionPreset == nil {
+                _sessionPreset = AVCaptureSession.Preset.default
+            }
+            return _sessionPreset as! AVCaptureSession.Preset
+        }
+        set {
+            guard sessionPreset != newValue, session.canSetSessionPreset(newValue) else {
+                return
+            }
+            session.beginConfiguration()
+            session.sessionPreset = newValue
+            session.commitConfiguration()
+        }
+    }
+    #elseif os(iOS) || os(macOS)
+    var sessionPreset: AVCaptureSession.Preset = .default {
+        didSet {
+            guard sessionPreset != oldValue, session.canSetSessionPreset(sessionPreset) else {
+                return
+            }
+            session.beginConfiguration()
+            session.sessionPreset = sessionPreset
+            session.commitConfiguration()
+        }
     }
     #endif
 
-    private var audioTimeStamp = CMTime.zero
-    private var videoTimeStamp = CMTime.zero
-
-    /// Append a CMSampleBuffer with media type.
-    public func appendSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
-        switch readyState {
-        case .encoding:
-            break
-        case .decoding:
-            switch sampleBuffer.formatDescription?._mediaType {
-            case kCMMediaType_Audio:
-                audioIO.codec.appendSampleBuffer(sampleBuffer)
-            case kCMMediaType_Video:
-                videoIO.codec.formatDescription = sampleBuffer.formatDescription
-                videoIO.codec.appendSampleBuffer(sampleBuffer)
-            default:
-                break
+    #if os(iOS) || os(macOS) || os(tvOS)
+    var inBackgroundMode = false {
+        didSet {
+            if #available(tvOS 17.0, *) {
+                guard inBackgroundMode != oldValue else {
+                    return
+                }
+                if inBackgroundMode {
+                    if !session.isMultitaskingCameraAccessEnabled {
+                        videoIO.multiCamCapture.detachSession(session)
+                        videoIO.capture.detachSession(session)
+                    }
+                } else {
+                    startCaptureSessionIfNeeded()
+                    if !session.isMultitaskingCameraAccessEnabled {
+                        videoIO.capture.attachSession(session)
+                        videoIO.multiCamCapture.attachSession(session)
+                    }
+                }
             }
-        case .standby:
-            break
         }
     }
+    #endif
 
-    func useSampleBuffer(sampleBuffer: CMSampleBuffer, mediaType: AVMediaType) -> Bool {
-        switch mediaSync {
-        case .video:
-            if mediaType == .audio {
-                return !videoTimeStamp.seconds.isZero && videoTimeStamp.seconds <= sampleBuffer.presentationTimeStamp.seconds
+    private(set) lazy var audioEngine: AVAudioEngine? = {
+        return IOMixer.audioEngineHolder.retain()
+    }()
+
+    deinit {
+        #if os(iOS) || os(macOS) || os(tvOS)
+        if #available(tvOS 17.0, *) {
+            if session.isRunning {
+                session.stopRunning()
             }
-            if videoTimeStamp == CMTime.zero {
-                videoTimeStamp = sampleBuffer.presentationTimeStamp
-            }
-            return true
-        default:
-            return true
         }
+        #endif
+        IOMixer.audioEngineHolder.release(audioEngine)
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(tvOS)
+    @available(tvOS 17.0, *)
     private func makeSession() -> AVCaptureSession {
         let session: AVCaptureSession
         if isMultiCamSessionEnabled, #available(iOS 13.0, *) {
@@ -242,9 +237,7 @@ public class IOMixer {
         }
         return session
     }
-    #endif
-
-    #if os(macOS)
+    #elseif os(macOS)
     private func makeSession() -> AVCaptureSession {
         let session = AVCaptureSession()
         if session.canSetSessionPreset(sessionPreset) {
@@ -258,84 +251,71 @@ public class IOMixer {
 extension IOMixer: IOUnitEncoding {
     /// Starts encoding for video and audio data.
     public func startEncoding(_ delegate: any AVCodecDelegate) {
-        guard readyState == .standby else {
-            return
-        }
-        readyState = .encoding
         videoIO.startEncoding(delegate)
         audioIO.startEncoding(delegate)
     }
 
     /// Stop encoding.
     public func stopEncoding() {
-        guard readyState == .encoding else {
-            return
-        }
-        videoTimeStamp = CMTime.zero
-        audioTimeStamp = CMTime.zero
         videoIO.stopEncoding()
         audioIO.stopEncoding()
-        readyState = .standby
     }
 }
 
 extension IOMixer: IOUnitDecoding {
     /// Starts decoding for video and audio data.
     public func startDecoding() {
-        guard readyState == .standby else {
-            return
-        }
         audioIO.startDecoding()
         videoIO.startDecoding()
         mediaLink.startRunning()
-        readyState = .decoding
     }
 
     /// Stop decoding.
     public func stopDecoding() {
-        guard readyState == .decoding else {
-            return
-        }
         mediaLink.stopRunning()
         audioIO.stopDecoding()
         videoIO.stopDecoding()
-        readyState = .standby
     }
 }
 
 extension IOMixer: MediaLinkDelegate {
     // MARK: MediaLinkDelegate
-    func mediaLink(_ mediaLink: MediaLink, dequeue sampleBuffer: CMSampleBuffer) {
+    func mediaLink(_ mediaLink: MediaLink<IOMixer>, dequeue sampleBuffer: CMSampleBuffer) {
         delegate?.mixer(self, didOutput: sampleBuffer)
         drawable?.enqueue(sampleBuffer)
     }
 
-    func mediaLink(_ mediaLink: MediaLink, didBufferingChanged: Bool) {
+    func mediaLink(_ mediaLink: MediaLink<IOMixer>, didBufferingChanged: Bool) {
         logger.info(didBufferingChanged)
     }
 }
 
-#if os(iOS) || os(macOS)
+#if os(iOS) || os(macOS) || os(tvOS)
 extension IOMixer: Running {
     // MARK: Running
     public func startRunning() {
         guard !isRunning.value else {
             return
         }
-        addSessionObservers(session)
-        session.startRunning()
-        isRunning.mutate { $0 = session.isRunning }
+        if #available(tvOS 17.0, *) {
+            addSessionObservers(session)
+            session.startRunning()
+            isRunning.mutate { $0 = session.isRunning }
+        }
     }
 
     public func stopRunning() {
         guard isRunning.value else {
             return
         }
-        removeSessionObservers(session)
-        session.stopRunning()
-        isRunning.mutate { $0 = session.isRunning }
+        if #available(tvOS 17.0, *) {
+            removeSessionObservers(session)
+            session.stopRunning()
+            isRunning.mutate { $0 = session.isRunning }
+        }
     }
 
+    @available(tvOS 17.0, *)
     func startCaptureSessionIfNeeded() {
         guard isRunning.value && !session.isRunning else {
             return
@@ -344,22 +324,25 @@ extension IOMixer: Running {
         isRunning.mutate { $0 = session.isRunning }
     }
 
+    @available(tvOS 17.0, *)
     private func addSessionObservers(_ session: AVCaptureSession) {
         NotificationCenter.default.addObserver(self, selector: #selector(sessionRuntimeError(_:)), name: .AVCaptureSessionRuntimeError, object: session)
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
         NotificationCenter.default.addObserver(self, selector: #selector(sessionInterruptionEnded(_:)), name: .AVCaptureSessionInterruptionEnded, object: session)
         NotificationCenter.default.addObserver(self, selector: #selector(sessionWasInterrupted(_:)), name: .AVCaptureSessionWasInterrupted, object: session)
         #endif
     }
 
+    @available(tvOS 17.0, *)
     private func removeSessionObservers(_ session: AVCaptureSession) {
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
         NotificationCenter.default.removeObserver(self, name: .AVCaptureSessionWasInterrupted, object: session)
         NotificationCenter.default.removeObserver(self, name: .AVCaptureSessionInterruptionEnded, object: session)
         #endif
         NotificationCenter.default.removeObserver(self, name: .AVCaptureSessionRuntimeError, object: session)
     }
 
+    @available(tvOS 17.0, *)
     @objc
     private func sessionRuntimeError(_ notification: NSNotification) {
         guard
@@ -369,7 +352,7 @@ extension IOMixer: Running {
         let error = AVError(_nsError: errorValue)
         switch error.code {
         case .unsupportedDeviceActiveFormat:
-            #if os(iOS)
+            #if os(iOS) || os(tvOS)
             let isMultiCamSupported: Bool
             if #available(iOS 13.0, *) {
                 isMultiCamSupported = session is AVCaptureMultiCamSession
@@ -380,8 +363,8 @@ extension IOMixer: Running {
             let isMultiCamSupported = true
             #endif
             guard let device = error.device, let format = device.videoFormat(
-                width: sessionPreset.width ?? Int32(videoIO.codec.settings.videoSize.width),
-                height: sessionPreset.height ?? Int32(videoIO.codec.settings.videoSize.height),
+                width: sessionPreset.width ?? Int32(videoIO.settings.videoSize.width),
+                height: sessionPreset.height ?? Int32(videoIO.settings.videoSize.height),
                 frameRate: videoIO.frameRate,
                 isMultiCamSupported: isMultiCamSupported
             ), device.activeFormat != format else {
@@ -399,7 +382,7 @@ extension IOMixer: Running {
             } catch {
                 logger.warn(error)
             }
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
         case .mediaServicesWereReset:
             startCaptureSessionIfNeeded()
         #endif
@@ -408,7 +391,8 @@ extension IOMixer: Running {
         }
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(tvOS)
+    @available(tvOS 17.0, *)
     @objc
     private func sessionWasInterrupted(_ notification: Notification) {
         guard let session = notification.object as? AVCaptureSession else {
@@ -423,6 +407,7 @@ extension IOMixer: Running {
         delegate?.mixer(self, sessionWasInterrupted: session, reason: reason)
     }
 
+    @available(tvOS 17.0, *)
     @objc
     private func sessionInterruptionEnded(_ notification: Notification) {
         delegate?.mixer(self, sessionInterruptionEnded: session)
@@ -436,8 +421,57 @@ extension IOMixer: Running {
 
     public func stopRunning() {
     }
-
-    func startCaptureSession() {
-    }
 }
 #endif
+
+extension IOMixer: VideoCodecDelegate {
+    // MARK: VideoCodecDelegate
+    public func videoCodec(_ codec: VideoCodec, didOutput formatDescription: CMFormatDescription?) {
+    }
+
+    public func videoCodec(_ codec: VideoCodec, didOutput sampleBuffer: CMSampleBuffer) {
+        mediaLink.enqueueVideo(sampleBuffer)
+    }
+
+    public func videoCodec(_ codec: VideoCodec, errorOccurred error: VideoCodec.Error) {
+        delegate?.mixer(self, videoCodecErrorOccurred: error)
+    }
+}
+
+extension IOMixer: AudioCodecDelegate {
+    // MARK: AudioCodecDelegate
+    public func audioCodec(_ codec: AudioCodec, errorOccurred error: AudioCodec.Error) {
+        delegate?.mixer(self, audioCodecErrorOccurred: error)
+    }
+
+    public func audioCodec(_ codec: AudioCodec, didOutput audioFormat: AVAudioFormat) {
+        do {
+            self.audioFormat = audioFormat
+            if let audioEngine = audioEngine, audioEngine.isRunning == false {
+                try audioEngine.start()
+            }
+        } catch {
+            logger.error(error)
+        }
+    }
+
+    public func audioCodec(_ codec: AudioCodec, didOutput audioBuffer: AVAudioBuffer, when: AVAudioTime) {
+        guard let audioBuffer = audioBuffer as? AVAudioPCMBuffer else {
+            return
+        }
+        delegate?.mixer(self, didOutput: audioBuffer, when: when)
+        mediaLink.enqueueAudio(audioBuffer)
+    }
+}
+
+extension IOMixer: IOAudioUnitDelegate {
+    // MARK: IOAudioUnitDelegate
+    func audioUnit(_ audioUnit: IOAudioUnit, errorOccurred error: AudioCodec.Error) {
+        delegate?.mixer(self, audioCodecErrorOccurred: error)
+    }
+
+    func audioUnit(_ audioUnit: IOAudioUnit, didOutput audioBuffer: AVAudioPCMBuffer, when: AVAudioTime) {
+        delegate?.mixer(self, didOutput: audioBuffer, when: when)
+        recorder.appendAudioPCMBuffer(audioBuffer, when: when)
+    }
+}

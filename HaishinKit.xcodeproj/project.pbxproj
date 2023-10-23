@@ -71,7 +71,6 @@
 		29798E771CE614FE00F5CBD0 /* SampleVideo_360x240_5mb.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 29B876D91CD70CE700FC07DA /* SampleVideo_360x240_5mb.mp4 */; };
 		298BCF331DD4C44A007FF86A /* AnyUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298BCF321DD4C44A007FF86A /* AnyUtil.swift */; };
 		2999C3752071138F00892E55 /* MTHKView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2999C3742071138F00892E55 /* MTHKView.swift */; };
-		299B13271D3B751400A1E8F5 /* HKView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 299B13261D3B751400A1E8F5 /* HKView.swift */; };
 		29AF3FCF1D7C744C00E41212 /* NetStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29AF3FCE1D7C744C00E41212 /* NetStream.swift */; };
 		29B8765B1CD70A7900FC07DA /* AudioCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29B876571CD70A7900FC07DA /* AudioCodec.swift */; };
 		29B8765D1CD70A7900FC07DA /* VideoCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29B876591CD70A7900FC07DA /* VideoCodec.swift */; };
@@ -138,9 +137,14 @@
 		2EC97B7427880FF400D8BE32 /* MTHKSwiftUiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EC97B7027880FF400D8BE32 /* MTHKSwiftUiView.swift */; };
 		BC0394562AA8A384006EDE38 /* Logboard.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC34DFD125EBB12C005F975A /* Logboard.xcframework */; };
 		BC03945F2AA8AFF5006EDE38 /* ExpressibleByIntegerLiteral+ExtensionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC03945E2AA8AFF5006EDE38 /* ExpressibleByIntegerLiteral+ExtensionTests.swift */; };
+		BC04A2D42AD2D1D700C87A3E /* AVAudioTime+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC04A2D32AD2D1D700C87A3E /* AVAudioTime+Extension.swift */; };
+		BC04A2D62AD2D95500C87A3E /* CMTime+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC04A2D52AD2D95500C87A3E /* CMTime+Extension.swift */; };
 		BC0BF4F22985FA9000D72CB4 /* HaishinKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2945CBBD1B4BE66000104112 /* HaishinKit.framework */; };
 		BC0BF4F529866FDE00D72CB4 /* IOMixerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0BF4F429866FDE00D72CB4 /* IOMixerTests.swift */; };
 		BC0D236D26331BAB001DDA0C /* DataBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0D236C26331BAB001DDA0C /* DataBuffer.swift */; };
+		BC0F1FD52ACBD39600C326FF /* MemoryUsage.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0F1FD42ACBD39600C326FF /* MemoryUsage.swift */; };
+		BC0F1FDA2ACC4CC100C326FF /* IOCaptureVideoPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0F1FD92ACC4CC100C326FF /* IOCaptureVideoPreview.swift */; };
+		BC0F1FDC2ACC630400C326FF /* NSView+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0F1FDB2ACC630400C326FF /* NSView+Extension.swift */; };
 		BC11023E2917C35B00D48035 /* CVPixelBufferPool+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC11023D2917C35B00D48035 /* CVPixelBufferPool+Extension.swift */; };
 		BC11024A2925147300D48035 /* IOCaptureUnit.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1102492925147300D48035 /* IOCaptureUnit.swift */; };
 		BC110253292DD6E900D48035 /* vImage_Buffer+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC110252292DD6E900D48035 /* vImage_Buffer+Extension.swift */; };
@@ -168,6 +172,7 @@
 		BC3004F9296C351D00119932 /* RTMPPlaybackViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC3004F8296C351D00119932 /* RTMPPlaybackViewController.swift */; };
 		BC31DBD22A653D1600C4DEA3 /* IOAudioMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC31DBD12A653D1600C4DEA3 /* IOAudioMonitor.swift */; };
 		BC32E88829C9971100051507 /* InstanceHolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC32E88729C9971100051507 /* InstanceHolder.swift */; };
+		BC34836A2AC56F3A002926F1 /* IOVideoMixer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC3483692AC56F3A002926F1 /* IOVideoMixer.swift */; };
 		BC34DFF025EBB53F005F975A /* Logboard.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC34DFD125EBB12C005F975A /* Logboard.xcframework */; };
 		BC34E00225EBB59C005F975A /* Logboard.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC34DFD125EBB12C005F975A /* Logboard.xcframework */; };
 		BC34FA0B286CB90A00EFAF27 /* PiPHKView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC34FA0A286CB90A00EFAF27 /* PiPHKView.swift */; };
@@ -187,7 +192,10 @@
 		BC562DC7295767860048D89A /* AVCaptureDevice+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC562DC6295767860048D89A /* AVCaptureDevice+Extension.swift */; };
 		BC562DCB29576D220048D89A /* AVCaptureSession.Preset+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC562DCA29576D220048D89A /* AVCaptureSession.Preset+Extension.swift */; };
 		BC566F6E25D2ECC500573C4C /* HLSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC566F6D25D2ECC500573C4C /* HLSService.swift */; };
+		BC56765B2AD2AED800524F7E /* AudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC56765A2AD2AED800524F7E /* AudioCapture.swift */; };
+		BC56765D2AD2B24800524F7E /* VideoAdaptiveNetBitRateStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1BC9032AC80531009005D3 /* VideoAdaptiveNetBitRateStrategy.swift */; };
 		BC570B4828E9ACC10098A12C /* IOUnit.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC570B4728E9ACC10098A12C /* IOUnit.swift */; };
+		BC6692F32AC2F717009EC058 /* NetBitRateStrategyConvertible.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC6692F22AC2F717009EC058 /* NetBitRateStrategyConvertible.swift */; };
 		BC6FC91E29609A6800A746EE /* ShapeFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC6FC91D29609A6800A746EE /* ShapeFactory.swift */; };
 		BC6FC9222961B3D800A746EE /* vImage_CGImageFormat+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC6FC9212961B3D800A746EE /* vImage_CGImageFormat+Extension.swift */; };
 		BC701F322AAC676C00C4BEFE /* AVAudioFormatFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC701F312AAC676C00C4BEFE /* AVAudioFormatFactory.swift */; };
@@ -258,7 +266,6 @@
 		BCFB355524FA27EA00DC5108 /* PlaybackViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCFB355324FA275600DC5108 /* PlaybackViewController.swift */; };
 		BCFB355A24FA40DD00DC5108 /* PlaybackContainerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCFB355924FA40DD00DC5108 /* PlaybackContainerViewController.swift */; };
 		BCFC51FE2AAB420700014428 /* IOAudioResampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCFC51FD2AAB420700014428 /* IOAudioResampler.swift */; };
-		BCFC9BE02AB43A3A00378E56 /* AudioCodecSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCFC9BDF2AB43A3A00378E56 /* AudioCodecSettingsTests.swift */; };
 		BCFF640B29C0C44B004EFF2F /* SampleVideo_360x240_5mb_2ch.ts in Resources */ = {isa = PBXBuildFile; fileRef = BCFF640A29C0C44B004EFF2F /* SampleVideo_360x240_5mb_2ch.ts */; };
 /* End PBXBuildFile section */
 
@@ -478,7 +485,6 @@
 		2997BDD31D50D31B000AF900 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		2999C3742071138F00892E55 /* MTHKView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MTHKView.swift; sourceTree = "<group>"; };
 		299B131C1D35272D00A1E8F5 /* IOUIScreenCaptureUnit.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IOUIScreenCaptureUnit.swift; sourceTree = "<group>"; };
-		299B13261D3B751400A1E8F5 /* HKView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HKView.swift; sourceTree = "<group>"; };
 		299F7E3A1CD71A97001E7272 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		299F7E3B1CD71A97001E7272 /* HaishinKit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HaishinKit.h; sourceTree = "<group>"; };
 		29A39C881D85BF30007C27E9 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -550,12 +556,18 @@
 		2EC97B6F27880FF400D8BE32 /* Views.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Views.swift; sourceTree = "<group>"; };
 		2EC97B7027880FF400D8BE32 /* MTHKSwiftUiView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MTHKSwiftUiView.swift; sourceTree = "<group>"; };
 		BC03945E2AA8AFF5006EDE38 /* ExpressibleByIntegerLiteral+ExtensionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExpressibleByIntegerLiteral+ExtensionTests.swift"; sourceTree = "<group>"; };
+		BC04A2D32AD2D1D700C87A3E /* AVAudioTime+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AVAudioTime+Extension.swift"; sourceTree = "<group>"; };
+		BC04A2D52AD2D95500C87A3E /* CMTime+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CMTime+Extension.swift"; sourceTree = "<group>"; };
 		BC0BF4F429866FDE00D72CB4 /* IOMixerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOMixerTests.swift; sourceTree = "<group>"; };
 		BC0D236C26331BAB001DDA0C /* DataBuffer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataBuffer.swift; sourceTree = "<group>"; };
+		BC0F1FD42ACBD39600C326FF /* MemoryUsage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryUsage.swift; sourceTree = "<group>"; };
+		BC0F1FD92ACC4CC100C326FF /* IOCaptureVideoPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOCaptureVideoPreview.swift; sourceTree = "<group>"; };
+		BC0F1FDB2ACC630400C326FF /* NSView+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSView+Extension.swift"; sourceTree = "<group>"; };
 		BC11023D2917C35B00D48035 /* CVPixelBufferPool+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CVPixelBufferPool+Extension.swift"; sourceTree = "<group>"; };
 		BC1102492925147300D48035 /* IOCaptureUnit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOCaptureUnit.swift; sourceTree = "<group>"; };
 		BC110252292DD6E900D48035 /* vImage_Buffer+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "vImage_Buffer+Extension.swift"; sourceTree = "<group>"; };
 		BC110256292E661E00D48035 /* MultiCamCaptureSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiCamCaptureSettings.swift; sourceTree = "<group>"; };
+		BC1BC9032AC80531009005D3 /* VideoAdaptiveNetBitRateStrategy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoAdaptiveNetBitRateStrategy.swift; sourceTree = "<group>"; };
 		BC1DC4A329F4F74F00E928ED /* AVCaptureSession+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AVCaptureSession+Extension.swift"; sourceTree = "<group>"; };
 		BC1DC4FA2A02868900E928ED /* FLVVideoFourCC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FLVVideoFourCC.swift; sourceTree = "<group>"; };
 		BC1DC5032A02894D00E928ED /* FLVVideoFourCCTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FLVVideoFourCCTests.swift; sourceTree = "<group>"; };
@@ -577,6 +589,7 @@
 		BC3004F8296C351D00119932 /* RTMPPlaybackViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RTMPPlaybackViewController.swift; sourceTree = "<group>"; };
 		BC31DBD12A653D1600C4DEA3 /* IOAudioMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOAudioMonitor.swift; sourceTree = "<group>"; };
 		BC32E88729C9971100051507 /* InstanceHolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstanceHolder.swift; sourceTree = "<group>"; };
+		BC3483692AC56F3A002926F1 /* IOVideoMixer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOVideoMixer.swift; sourceTree = "<group>"; };
 		BC34DFD125EBB12C005F975A /* Logboard.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = Logboard.xcframework; path = Carthage/Build/Logboard.xcframework; sourceTree = "<group>"; };
 		BC34FA0A286CB90A00EFAF27 /* PiPHKView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiPHKView.swift; sourceTree = "<group>"; };
 		BC3802112AB5E770001AE399 /* IOVideoCaptureUnit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOVideoCaptureUnit.swift; sourceTree = "<group>"; };
@@ -594,7 +607,9 @@
 		BC562DC6295767860048D89A /* AVCaptureDevice+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AVCaptureDevice+Extension.swift"; sourceTree = "<group>"; };
 		BC562DCA29576D220048D89A /* AVCaptureSession.Preset+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AVCaptureSession.Preset+Extension.swift"; sourceTree = "<group>"; };
 		BC566F6D25D2ECC500573C4C /* HLSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HLSService.swift; sourceTree = "<group>"; };
+		BC56765A2AD2AED800524F7E /* AudioCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCapture.swift; sourceTree = "<group>"; };
 		BC570B4728E9ACC10098A12C /* IOUnit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOUnit.swift; sourceTree = "<group>"; };
+		BC6692F22AC2F717009EC058 /* NetBitRateStrategyConvertible.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetBitRateStrategyConvertible.swift; sourceTree = "<group>"; };
 		BC6FC91D29609A6800A746EE /* ShapeFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeFactory.swift; sourceTree = "<group>"; };
 		BC6FC9212961B3D800A746EE /* vImage_CGImageFormat+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "vImage_CGImageFormat+Extension.swift"; sourceTree = "<group>"; };
 		BC701F312AAC676C00C4BEFE /* AVAudioFormatFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVAudioFormatFactory.swift; sourceTree = "<group>"; };
@@ -645,7 +660,6 @@
 		BCFB355324FA275600DC5108 /* PlaybackViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackViewController.swift; sourceTree = "<group>"; };
 		BCFB355924FA40DD00DC5108 /* PlaybackContainerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackContainerViewController.swift; sourceTree = "<group>"; };
 		BCFC51FD2AAB420700014428 /* IOAudioResampler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOAudioResampler.swift; sourceTree = "<group>"; };
-		BCFC9BDF2AB43A3A00378E56 /* AudioCodecSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCodecSettingsTests.swift; sourceTree = "<group>"; };
 		BCFF640A29C0C44B004EFF2F /* SampleVideo_360x240_5mb_2ch.ts */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.typescript; path = SampleVideo_360x240_5mb_2ch.ts; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -896,7 +910,6 @@
 			isa = PBXGroup;
 			children = (
 				2950181F1FFA1BD700358E10 /* AudioCodecTests.swift */,
-				BCFC9BDF2AB43A3A00378E56 /* AudioCodecSettingsTests.swift */,
 			);
 			path = Codec;
 			sourceTree = "<group>";
@@ -969,15 +982,18 @@
 				29A39C801D85BEFA007C27E9 /* Screencast */,
 				296897411CDB01D20074D5F0 /* AppDelegate.swift */,
 				296897421CDB01D20074D5F0 /* Assets.xcassets */,
+				BC56765A2AD2AED800524F7E /* AudioCapture.swift */,
 				291F4E361CF206E200F59C51 /* Icon.png */,
 				296897431CDB01D20074D5F0 /* Info.plist */,
 				2968974D1CDB01DD0074D5F0 /* LaunchScreen.storyboard */,
 				296897441CDB01D20074D5F0 /* LiveViewController.swift */,
 				29205CBD1E461F4E009D3FFF /* Main.storyboard */,
+				BC0F1FD42ACBD39600C326FF /* MemoryUsage.swift */,
 				BCFB355924FA40DD00DC5108 /* PlaybackContainerViewController.swift */,
 				BCFB355324FA275600DC5108 /* PlaybackViewController.swift */,
 				291468161E581C7D00E619BA /* Preference.swift */,
 				2950742E1E4620B7007F15A4 /* PreferenceViewController.swift */,
+				BC1BC9032AC80531009005D3 /* VideoAdaptiveNetBitRateStrategy.swift */,
 				296897461CDB01D20074D5F0 /* VisualEffect.swift */,
 			);
 			path = iOS;
@@ -1006,6 +1022,7 @@
 			isa = PBXGroup;
 			children = (
 				29B876971CD70B1100FC07DA /* MIME.swift */,
+				BC6692F22AC2F717009EC058 /* NetBitRateStrategyConvertible.swift */,
 				29B876981CD70B1100FC07DA /* NetClient.swift */,
 				29B876991CD70B1100FC07DA /* NetService.swift */,
 				29B8769A1CD70B1100FC07DA /* NetSocket.swift */,
@@ -1045,19 +1062,20 @@
 			isa = PBXGroup;
 			children = (
 				BC9F9C7726F8C16600B01ED0 /* Choreographer.swift */,
-				299B13261D3B751400A1E8F5 /* HKView.swift */,
 				BC3802132AB5E7CC001AE399 /* IOAudioCaptureUnit.swift */,
 				BC31DBD12A653D1600C4DEA3 /* IOAudioMonitor.swift */,
 				BCFC51FD2AAB420700014428 /* IOAudioResampler.swift */,
 				BC5019C02A6D266B0046E02F /* IOAudioRingBuffer.swift */,
 				29B876891CD70AFE00FC07DA /* IOAudioUnit.swift */,
 				BC1102492925147300D48035 /* IOCaptureUnit.swift */,
+				BC0F1FD92ACC4CC100C326FF /* IOCaptureVideoPreview.swift */,
 				29B8768B1CD70AFE00FC07DA /* IOMixer.swift */,
 				2976A47D1D48C5C700B53EF2 /* IORecorder.swift */,
 				BCA2252B293CC5B600DD7CB2 /* IOScreenCaptureUnit.swift */,
 				299B131C1D35272D00A1E8F5 /* IOUIScreenCaptureUnit.swift */,
 				BC570B4728E9ACC10098A12C /* IOUnit.swift */,
 				BC3802112AB5E770001AE399 /* IOVideoCaptureUnit.swift */,
+				BC3483692AC56F3A002926F1 /* IOVideoMixer.swift */,
 				29B8768E1CD70AFE00FC07DA /* IOVideoUnit.swift */,
 				BC959EEE296EE4190067BA97 /* ImageTransform.swift */,
 				2999C3742071138F00892E55 /* MTHKView.swift */,
@@ -1099,21 +1117,13 @@
 		29D3D4FE1ED0536700DD4AA6 /* tvOS */ = {
 			isa = PBXGroup;
 			children = (
-				29D3D5011ED053C000DD4AA6 /* Base.lproj */,
 				29D3D4FF1ED053C000DD4AA6 /* AppDelegate.swift */,
 				29D3D5001ED053C000DD4AA6 /* Assets.xcassets */,
 				29D3D5041ED053C000DD4AA6 /* Info.plist */,
+				29D3D5021ED053C000DD4AA6 /* Main.storyboard */,
 				29D3D5051ED053C000DD4AA6 /* ViewController.swift */,
 			);
 			path = tvOS;
-			sourceTree = "<group>";
-		};
-		29D3D5011ED053C000DD4AA6 /* Base.lproj */ = {
-			isa = PBXGroup;
-			children = (
-				29D3D5021ED053C000DD4AA6 /* Main.storyboard */,
-			);
-			path = Base.lproj;
 			sourceTree = "<group>";
 		};
 		29EA87D11E799EFF0043A5F8 /* Extension */ = {
@@ -1121,6 +1131,7 @@
 			children = (
 				1A2166D3A449D813866FE9D9 /* AVAudioFormat+Extension.swift */,
 				BC22EEF12AAF5D6300E3406D /* AVAudioPCMBuffer+Extension.swift */,
+				BC04A2D32AD2D1D700C87A3E /* AVAudioTime+Extension.swift */,
 				BC562DC6295767860048D89A /* AVCaptureDevice+Extension.swift */,
 				BC2828AC2AA3225100741013 /* AVCaptureDevice.Format+Extension.swift */,
 				BC1DC4A329F4F74F00E928ED /* AVCaptureSession+Extension.swift */,
@@ -1131,12 +1142,14 @@
 				29EA87E91E79A3B70043A5F8 /* CMBlockBuffer+Extension.swift */,
 				2916196B1E7F0768009FB344 /* CMFormatDescription+Extension.swift */,
 				29EA87DE1E79A0810043A5F8 /* CMSampleBuffer+Extension.swift */,
+				BC04A2D52AD2D95500C87A3E /* CMTime+Extension.swift */,
 				29EA87E11E79A1E90043A5F8 /* CMVideoFormatDescription+Extension.swift */,
 				29EA87EC1E79A3E30043A5F8 /* CVPixelBuffer+Extension.swift */,
 				BC11023D2917C35B00D48035 /* CVPixelBufferPool+Extension.swift */,
 				29EA87DB1E79A0460043A5F8 /* Data+Extension.swift */,
 				29EA87D21E799F360043A5F8 /* ExpressibleByIntegerLiteral+Extension.swift */,
 				29EA87D41E799F670043A5F8 /* Mirror+Extension.swift */,
+				BC0F1FDB2ACC630400C326FF /* NSView+Extension.swift */,
 				29EA87D71E79A0090043A5F8 /* URL+Extension.swift */,
 				BC83A4722403D83B006BDE06 /* VTCompressionSession+Extension.swift */,
 				BC4914AD28DDF445009E2DF6 /* VTDecompressionSession+Extension.swift */,
@@ -1450,8 +1463,8 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastSwiftMigration = 0700;
-				LastSwiftUpdateCheck = 1300;
-				LastUpgradeCheck = 1400;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
 				ORGANIZATIONNAME = "";
 				TargetAttributes = {
 					2915EC511D85BDF100621092 = {
@@ -1484,7 +1497,6 @@
 					29D3D4EE1ED0531500DD4AA6 = {
 						CreatedOnToolsVersion = 8.3.2;
 						LastSwiftMigration = 1020;
-						ProvisioningStyle = Automatic;
 					};
 					BCCC45952AA289FA0016EFE8 = {
 						CreatedOnToolsVersion = 14.3;
@@ -1707,7 +1719,6 @@
 				2958910E1EEB8D3C00CE51E1 /* FLVVideoCodec.swift in Sources */,
 				BC1DC5142A05428800E928ED /* HEVCNALUnit.swift in Sources */,
 				BC6FC9222961B3D800A746EE /* vImage_CGImageFormat+Extension.swift in Sources */,
-				299B13271D3B751400A1E8F5 /* HKView.swift in Sources */,
 				BC20DF38250377A3007BC608 /* IOUIScreenCaptureUnit.swift in Sources */,
 				29B876AF1CD70B2800FC07DA /* RTMPChunk.swift in Sources */,
 				29B876841CD70AE800FC07DA /* AVCDecoderConfigurationRecord.swift in Sources */,
@@ -1742,11 +1753,13 @@
 				2958912A1EEB8F1D00CE51E1 /* FLVSoundSize.swift in Sources */,
 				29EA87DC1E79A0460043A5F8 /* Data+Extension.swift in Sources */,
 				29DF20622312A3DD004057C3 /* RTMPNWSocket.swift in Sources */,
+				BC04A2D62AD2D95500C87A3E /* CMTime+Extension.swift in Sources */,
 				BC22EEF22AAF5D6300E3406D /* AVAudioPCMBuffer+Extension.swift in Sources */,
 				BCCBCE9729A90D880095B51C /* AVCNALUnit.swift in Sources */,
 				29B876BD1CD70B3900FC07DA /* CRC32.swift in Sources */,
 				BCA2252C293CC5B600DD7CB2 /* IOScreenCaptureUnit.swift in Sources */,
 				BC4914A628DDD367009E2DF6 /* VTSessionOption.swift in Sources */,
+				BC0F1FDA2ACC4CC100C326FF /* IOCaptureVideoPreview.swift in Sources */,
 				BC4914B228DDFE31009E2DF6 /* VTSessionOptionKey.swift in Sources */,
 				29EA87E61E79A2780043A5F8 /* CMAudioFormatDescription+Extension.swift in Sources */,
 				BC7C56CD29A786AE00C41A9B /* ADTS.swift in Sources */,
@@ -1759,6 +1772,7 @@
 				29F6F4851DFB83E200920A3A /* RTMPHandshake.swift in Sources */,
 				29EA87DF1E79A0810043A5F8 /* CMSampleBuffer+Extension.swift in Sources */,
 				BC562DC7295767860048D89A /* AVCaptureDevice+Extension.swift in Sources */,
+				BC0F1FDC2ACC630400C326FF /* NSView+Extension.swift in Sources */,
 				29EA87E21E79A1E90043A5F8 /* CMVideoFormatDescription+Extension.swift in Sources */,
 				BC110253292DD6E900D48035 /* vImage_Buffer+Extension.swift in Sources */,
 				BC1DC4A429F4F74F00E928ED /* AVCaptureSession+Extension.swift in Sources */,
@@ -1769,6 +1783,7 @@
 				295891121EEB8D7200CE51E1 /* FLVFrameType.swift in Sources */,
 				29B876961CD70AFE00FC07DA /* VideoEffect.swift in Sources */,
 				BCFC51FE2AAB420700014428 /* IOAudioResampler.swift in Sources */,
+				BC34836A2AC56F3A002926F1 /* IOVideoMixer.swift in Sources */,
 				BC1DC5062A02963600E928ED /* FLVTagType.swift in Sources */,
 				29B876691CD70AB300FC07DA /* Constants.swift in Sources */,
 				29B8766D1CD70AB300FC07DA /* DataConvertible.swift in Sources */,
@@ -1788,8 +1803,10 @@
 				295891261EEB8EF300CE51E1 /* FLVAACPacket.swift in Sources */,
 				29B876791CD70ACE00FC07DA /* HTTPStream.swift in Sources */,
 				BC1DC50A2A039B4400E928ED /* HEVCDecoderConfigurationRecord.swift in Sources */,
+				BC6692F32AC2F717009EC058 /* NetBitRateStrategyConvertible.swift in Sources */,
 				BC6FC91E29609A6800A746EE /* ShapeFactory.swift in Sources */,
 				BC32E88829C9971100051507 /* InstanceHolder.swift in Sources */,
+				BC04A2D42AD2D1D700C87A3E /* AVAudioTime+Extension.swift in Sources */,
 				BC7C56B7299E579F00C41A9B /* AudioCodecSettings.swift in Sources */,
 				29B876AC1CD70B2800FC07DA /* AMF3Serializer.swift in Sources */,
 				BC31DBD22A653D1600C4DEA3 /* IOAudioMonitor.swift in Sources */,
@@ -1844,7 +1861,6 @@
 				290EA8AA1DFB61E700053022 /* CRC32Tests.swift in Sources */,
 				035AFA042263868E009DD0BB /* RTMPStreamTests.swift in Sources */,
 				290686031DFDB7A7008EB7ED /* RTMPConnectionTests.swift in Sources */,
-				BCFC9BE02AB43A3A00378E56 /* AudioCodecSettingsTests.swift in Sources */,
 				BCC9E9092636FF7400948774 /* DataBufferTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1853,8 +1869,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BC56765D2AD2B24800524F7E /* VideoAdaptiveNetBitRateStrategy.swift in Sources */,
 				291468191E581C8F00E619BA /* Preference.swift in Sources */,
+				BC56765B2AD2AED800524F7E /* AudioCapture.swift in Sources */,
 				BCFB355A24FA40DD00DC5108 /* PlaybackContainerViewController.swift in Sources */,
+				BC0F1FD52ACBD39600C326FF /* MemoryUsage.swift in Sources */,
 				296897671CDB02940074D5F0 /* AppDelegate.swift in Sources */,
 				296897681CDB02940074D5F0 /* LiveViewController.swift in Sources */,
 				BCFB355524FA27EA00DC5108 /* PlaybackViewController.swift in Sources */,
@@ -2024,6 +2043,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = SUEQ2SZ2L5;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = "$(SRCROOT)/Examples/iOS/Screencast/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
@@ -2032,6 +2052,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.haishinkit.HaishinKit.Example-iOS.Screencast";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -2056,6 +2077,7 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = SUEQ2SZ2L5;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = "$(SRCROOT)/Examples/iOS/Screencast/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
@@ -2064,6 +2086,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.haishinkit.HaishinKit.Example-iOS.Screencast";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -2107,9 +2130,11 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				EXCLUDED_ARCHS = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -2171,9 +2196,11 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -2205,11 +2232,14 @@
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CODE_SIGN_IDENTITY = "";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
+				DEAD_CODE_STRIPPING = YES;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = SUEQ2SZ2L5;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = "$(SRCROOT)/Platforms/iOS/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -2219,7 +2249,10 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				MARKETING_VERSION = 1.6.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu99 gnu++11";
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_SWIFT_FLAGS = "-enable-upcoming-feature ExistentialAny";
 				PRODUCT_BUNDLE_IDENTIFIER = com.haishinkit.HaishinKit;
@@ -2227,12 +2260,12 @@
 				PROVISIONING_PROFILE = "";
 				SDKROOT = "";
 				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator macosx";
+				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator macosx xros xrsimulator";
 				SUPPORTS_MACCATALYST = YES;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_INCLUDE_PATHS = "";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,3";
+				TARGETED_DEVICE_FAMILY = "1,2,3,7";
 				TVOS_DEPLOYMENT_TARGET = 12.0;
 			};
 			name = Debug;
@@ -2245,11 +2278,14 @@
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CODE_SIGN_IDENTITY = "";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
+				DEAD_CODE_STRIPPING = YES;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = SUEQ2SZ2L5;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = "$(SRCROOT)/Platforms/iOS/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -2259,7 +2295,10 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				MARKETING_VERSION = 1.6.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu99 gnu++11";
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_SWIFT_FLAGS = "-enable-upcoming-feature ExistentialAny";
 				PRODUCT_BUNDLE_IDENTIFIER = com.haishinkit.HaishinKit;
@@ -2267,12 +2306,12 @@
 				PROVISIONING_PROFILE = "";
 				SDKROOT = "";
 				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator macosx";
+				SUPPORTED_PLATFORMS = "appletvos appletvsimulator iphoneos iphonesimulator macosx xros xrsimulator";
 				SUPPORTS_MACCATALYST = YES;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_INCLUDE_PATHS = "";
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,3";
+				TARGETED_DEVICE_FAMILY = "1,2,3,7";
 				TVOS_DEPLOYMENT_TARGET = 12.0;
 			};
 			name = Release;
@@ -2284,6 +2323,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = Tests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -2292,6 +2332,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.haishinkit.HaishinKit.Tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -2310,6 +2351,7 @@
 				CLANG_ANALYZER_NONNULL = YES;
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = Tests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -2318,6 +2360,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.haishinkit.HaishinKit.Tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -2338,17 +2381,21 @@
 				CLANG_ANALYZER_NONNULL = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = SUEQ2SZ2L5;
 				ENABLE_BITCODE = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GCC_OPTIMIZATION_LEVEL = 0;
 				INFOPLIST_FILE = "$(SRCROOT)/Examples/iOS/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_SWIFT_FLAGS = "-enable-upcoming-feature ExistentialAny";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.haishinkit.HaishinKit.Example-iOS";
@@ -2372,15 +2419,19 @@
 				CLANG_ANALYZER_NONNULL = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = SUEQ2SZ2L5;
 				ENABLE_BITCODE = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = "$(SRCROOT)/Examples/iOS/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				OTHER_SWIFT_FLAGS = "-enable-upcoming-feature ExistentialAny";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.haishinkit.HaishinKit.Example-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -2401,14 +2452,16 @@
 				CLANG_ANALYZER_NONNULL = YES;
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = "$(SRCROOT)/Examples/macOS/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				OTHER_SWIFT_FLAGS = "-enable-upcoming-feature ExistentialAny";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.haishinkit.HaishinKit.Example-macOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -2428,13 +2481,15 @@
 				CLANG_ANALYZER_NONNULL = YES;
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = "$(SRCROOT)/Examples/macOS/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				OTHER_SWIFT_FLAGS = "-enable-upcoming-feature ExistentialAny";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.haishinkit.HaishinKit.Example-macOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -2455,17 +2510,22 @@
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = SUEQ2SZ2L5;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = "$(SRCROOT)/Examples/tvOS/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				OTHER_SWIFT_FLAGS = "-enable-upcoming-feature ExistentialAny";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.haishinkit.Example-tvOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = appletvos;
 				SUPPORTED_PLATFORMS = "appletvos appletvsimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -2473,7 +2533,7 @@
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 12.0;
+				TVOS_DEPLOYMENT_TARGET = 17.0;
 			};
 			name = Debug;
 		};
@@ -2486,23 +2546,28 @@
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = SUEQ2SZ2L5;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = "$(SRCROOT)/Examples/tvOS/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				OTHER_SWIFT_FLAGS = "-enable-upcoming-feature ExistentialAny";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.haishinkit.Example-tvOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = appletvos;
 				SUPPORTED_PLATFORMS = "appletvos appletvsimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 12.0;
+				TVOS_DEPLOYMENT_TARGET = 17.0;
 			};
 			name = Release;
 		};
@@ -2516,9 +2581,10 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = "";
@@ -2526,6 +2592,7 @@
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_MODULE_VERIFIER = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2023 Shogo Endo. All rights reserved.";
@@ -2536,6 +2603,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				MARKETING_VERSION = 1.6.0;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu11 gnu++20";
@@ -2568,15 +2636,17 @@
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = "";
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_MODULE_VERIFIER = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2023 Shogo Endo. All rights reserved.";
@@ -2587,6 +2657,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				MARKETING_VERSION = 1.6.0;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu11 gnu++20";
@@ -2619,10 +2690,12 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_ASSET_PATHS = "\"Examples/iOSSwiftUI/Preview Content\"";
 				DEVELOPMENT_TEAM = SUEQ2SZ2L5;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "";
@@ -2638,6 +2711,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				MARKETING_VERSION = 1.0.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -2667,9 +2741,11 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Examples/iOSSwiftUI/Preview Content\"";
 				DEVELOPMENT_TEAM = SUEQ2SZ2L5;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "";
@@ -2685,6 +2761,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
 				MARKETING_VERSION = 1.0.0;
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "-enable-upcoming-feature ExistentialAny";

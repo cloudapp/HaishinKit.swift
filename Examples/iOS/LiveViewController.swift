@@ -27,13 +27,15 @@ final class LiveViewController: UIViewController {
     private var currentEffect: VideoEffect?
     private var currentPosition: AVCaptureDevice.Position = .back
     private var retryCount: Int = 0
-    private var videoBitRate = VideoCodecSettings.default.bitRate
     private var preferedStereo = false
+    private lazy var audioCapture: AudioCapture = {
+        let audioCapture = AudioCapture()
+        audioCapture.delegate = self
+        return audioCapture
+    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        rtmpConnection.delegate = self
 
         pipIntentView.layer.borderWidth = 1.0
         pipIntentView.layer.borderColor = UIColor.white.cgColor
@@ -41,28 +43,16 @@ final class LiveViewController: UIViewController {
         pipIntentView.isUserInteractionEnabled = true
         view.addSubview(pipIntentView)
 
+        rtmpConnection.delegate = self
+
         rtmpStream = RTMPStream(connection: rtmpConnection)
         if let orientation = DeviceUtil.videoOrientation(by: UIApplication.shared.statusBarOrientation) {
             rtmpStream.videoOrientation = orientation
         }
 
         rtmpStream.isMonitoringEnabled = DeviceUtil.isHeadphoneConnected()
-
-        rtmpStream.audioSettings = AudioCodecSettings(
-            bitRate: 64 * 1000
-        )
-
-        rtmpStream.videoSettings = VideoCodecSettings(
-            videoSize: .init(width: 854, height: 480),
-            profileLevel: kVTProfileLevel_H264_Baseline_3_1 as String,
-            bitRate: 640 * 1000,
-            maxKeyFrameIntervalDuration: 2,
-            scalingMode: .trim,
-            bitRateMode: .average,
-            allowFrameReordering: nil,
-            isHardwareEncoderEnabled: true
-        )
-
+        rtmpStream.audioSettings.bitRate = 64 * 1000
+        rtmpStream.bitrateStrategy = VideoAdaptiveNetBitRateStrategy(mamimumVideoBitrate: VideoCodecSettings.default.bitRate)
         rtmpStream.mixer.recorder.delegate = self
         videoBitrateSlider?.value = Float(VideoCodecSettings.default.bitRate) / 1000
         audioBitrateSlider?.value = Float(AudioCodecSettings.default.bitRate) / 1000
@@ -163,7 +153,7 @@ final class LiveViewController: UIViewController {
         }
         if slider == videoBitrateSlider {
             videoBitrateLabel?.text = "video \(Int(slider.value))/kbps"
-            rtmpStream.videoSettings.bitRate = UInt32(slider.value * 1000)
+            rtmpStream.bitrateStrategy = VideoAdaptiveNetBitRateStrategy(mamimumVideoBitrate: Int(slider.value * 1000))
         }
         if slider == zoomSlider {
             let zoomFactor = CGFloat(slider.value)
@@ -348,21 +338,15 @@ final class LiveViewController: UIViewController {
 
 extension LiveViewController: RTMPConnectionDelegate {
     func connection(_ connection: RTMPConnection, publishInsufficientBWOccured stream: RTMPStream) {
-        // Adaptive bitrate streaming exsample. Please feedback me your good algorithm. :D
-        videoBitRate -= 32 * 1000
-        stream.videoSettings.bitRate = max(videoBitRate, 64 * 1000)
     }
 
     func connection(_ connection: RTMPConnection, publishSufficientBWOccured stream: RTMPStream) {
-        videoBitRate += 32 * 1000
-        stream.videoSettings.bitRate = min(videoBitRate, VideoCodecSettings.default.bitRate)
     }
 
     func connection(_ connection: RTMPConnection, updateStats stream: RTMPStream) {
     }
 
     func connection(_ connection: RTMPConnection, didClear stream: RTMPStream) {
-        videoBitRate = VideoCodecSettings.default.bitRate
     }
 }
 
@@ -382,6 +366,13 @@ extension LiveViewController: IORecorderDelegate {
                 print(error)
             }
         })
+    }
+}
+
+extension LiveViewController: AudioCaptureDelegate {
+    // MARK: AudioCaptureDelegate
+    func audioCapture(_ audioCapture: AudioCapture, buffer: AVAudioBuffer, time: AVAudioTime) {
+        rtmpStream.appendAudioBuffer(buffer, when: time)
     }
 }
 

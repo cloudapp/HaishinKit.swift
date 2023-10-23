@@ -8,6 +8,7 @@ extension AVCaptureSession.Preset {
 }
 #endif
 
+#if os(iOS) || os(tvOS) || os(macOS)
 @available(tvOS 17.0, *)
 extension AVCaptureSession.Preset {
 
@@ -41,3 +42,4 @@ extension AVCaptureSession.Preset {
         }
     }
 }
+#endif

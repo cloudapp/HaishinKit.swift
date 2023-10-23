@@ -2,25 +2,13 @@ import AVFoundation
 import CoreImage
 
 final class IOVideoUnit: NSObject, IOUnit {
+    typealias FormatDescription = CMVideoFormatDescription
+
     enum Error: Swift.Error {
         case multiCamNotSupported
     }
 
-    static let defaultAttributes: [NSString: NSObject] = [
-        kCVPixelBufferPixelFormatTypeKey: NSNumber(value: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange),
-        kCVPixelBufferMetalCompatibilityKey: kCFBooleanTrue
-    ]
-
-    let lockQueue = DispatchQueue(label: "com.haishinkit.HaishinKit.VideoIOComponent.lock")
-
-    var context: CIContext = .init() {
-        didSet {
-            for effect in effects {
-                effect.ciContext = context
-            }
-        }
-    }
-
+    let lockQueue = DispatchQueue(label: "com.haishinkit.HaishinKit.IOVideoUnit.lock")
     weak var drawable: (any NetStreamDrawable)? {
         didSet {
             #if os(iOS) || os(macOS)
@@ -28,52 +16,60 @@ final class IOVideoUnit: NSObject, IOUnit {
             #endif
         }
     }
-
-    var formatDescription: CMVideoFormatDescription? {
-        didSet {
-            codec.formatDescription = formatDescription
-        }
-    }
-
-    lazy var codec: VideoCodec = {
-        var codec = VideoCodec()
-        codec.lockQueue = lockQueue
-        return codec
-    }()
-
+    var multiCamCaptureSettings: MultiCamCaptureSettings = .default
     weak var mixer: IOMixer?
-
-    var muted = false
-
-    private(set) var effects: Set<VideoEffect> = []
-
-    private var extent = CGRect.zero {
-        didSet {
-            guard extent != oldValue else {
-                return
-            }
-            CVPixelBufferPoolCreate(nil, nil, attributes as CFDictionary?, &pixelBufferPool)
-            pixelBufferPool?.createPixelBuffer(&pixelBuffer)
+    var muted: Bool {
+        get {
+            videoMixer.muted
+        }
+        set {
+            videoMixer.muted = newValue
         }
     }
-
-    private var attributes: [NSString: NSObject] {
-        var attributes: [NSString: NSObject] = Self.defaultAttributes
-        attributes[kCVPixelBufferWidthKey] = NSNumber(value: Int(extent.width))
-        attributes[kCVPixelBufferHeightKey] = NSNumber(value: Int(extent.height))
-        return attributes
+    var settings: VideoCodecSettings {
+        get {
+            return codec.settings
+        }
+        set {
+            codec.settings = newValue
+        }
     }
-
-    private var pixelBufferPool: CVPixelBufferPool?
-
-    #if os(iOS) || os(macOS)
+    var inputFormat: FormatDescription? {
+        get {
+            codec.inputFormat
+        }
+        set {
+            codec.inputFormat = newValue
+        }
+    }
+    var outputFormat: FormatDescription? {
+        codec.outputFormat
+    }
+    #if os(iOS) || os(macOS) || os(tvOS)
     var frameRate = IOMixer.defaultFrameRate {
         didSet {
-            capture.setFrameRate(frameRate)
-            multiCamCapture.setFrameRate(frameRate)
+            if #available(tvOS 17.0, *) {
+                capture.setFrameRate(frameRate)
+                multiCamCapture.setFrameRate(frameRate)
+            }
         }
     }
 
+    var torch = false {
+        didSet {
+            guard torch != oldValue else {
+                return
+            }
+            if #available(tvOS 17.0, *) {
+                setTorchMode(torch ? .on : .off)
+            }
+        }
+    }
+    #endif
+
+    var context: CIContext = .init()
+
+    #if os(iOS) || os(macOS)
     var videoOrientation: AVCaptureVideoOrientation = .portrait {
         didSet {
             guard videoOrientation != oldValue else {
@@ -94,24 +90,41 @@ final class IOVideoUnit: NSObject, IOUnit {
             multiCamCapture.videoOrientation = videoOrientation
         }
     }
+    #endif
 
-    var torch = false {
-        didSet {
-            guard torch != oldValue else {
-                return
-            }
-            setTorchMode(torch ? .on : .off)
+    #if os(tvOS)
+    private var _capture: Any?
+    @available(tvOS 17.0, *)
+    var capture: IOVideoCaptureUnit {
+        if _capture == nil {
+            _capture = IOVideoCaptureUnit()
         }
+        return _capture as! IOVideoCaptureUnit
     }
 
+    private var _multiCamCapture: Any?
+    @available(tvOS 17.0, *)
+    var multiCamCapture: IOVideoCaptureUnit {
+        if _multiCamCapture == nil {
+            _multiCamCapture = IOVideoCaptureUnit()
+        }
+        return _multiCamCapture as! IOVideoCaptureUnit
+    }
+    #elseif os(iOS) || os(macOS)
     private(set) var capture: IOVideoCaptureUnit = .init()
     private(set) var multiCamCapture: IOVideoCaptureUnit = .init()
     #endif
-
-    var multiCamCaptureSettings: MultiCamCaptureSettings = .default
-
-    private var pixelBuffer: CVPixelBuffer?
-    private var multiCamSampleBuffer: CMSampleBuffer?
+    private(set) var presentationTimeStamp: CMTime = .invalid
+    private lazy var videoMixer: IOVideoMixer = {
+        var videoMixer = IOVideoMixer<IOVideoUnit>()
+        videoMixer.delegate = self
+        return videoMixer
+    }()
+    private lazy var codec: VideoCodec = {
+        var codec = VideoCodec()
+        codec.lockQueue = lockQueue
+        return codec
+    }()
 
     deinit {
         if Thread.isMainThread {
@@ -123,22 +136,23 @@ final class IOVideoUnit: NSObject, IOUnit {
         }
     }
 
-    #if os(iOS) || os(macOS)
+    #if os(iOS) || os(tvOS) || os(macOS)
+    @available(tvOS 17.0, *)
     func attachCamera(_ device: AVCaptureDevice?) throws {
         guard let mixer, self.capture.device != device else {
             return
         }
         guard let device else {
-            mixer.mediaSync = .passthrough
             mixer.session.beginConfiguration()
             defer {
                 mixer.session.commitConfiguration()
             }
             capture.detachSession(mixer.session)
             try capture.attachDevice(nil, videoUnit: self)
+            presentationTimeStamp = .invalid
+            inputFormat = nil
             return
         }
-        mixer.mediaSync = .video
         mixer.session.beginConfiguration()
         defer {
             mixer.session.commitConfiguration()
@@ -152,7 +166,7 @@ final class IOVideoUnit: NSObject, IOUnit {
         try capture.attachDevice(device, videoUnit: self)
     }
 
-    @available(iOS 13.0, *)
+    @available(iOS 13.0, tvOS 17.0, *)
     func attachMultiCamera(_ device: AVCaptureDevice?) throws {
         #if os(iOS)
         guard AVCaptureMultiCamSession.isMultiCamSupported else {
@@ -182,7 +196,14 @@ final class IOVideoUnit: NSObject, IOUnit {
         try multiCamCapture.attachDevice(device, videoUnit: self)
     }
 
-    @available(iOS, unavailable)
+    @available(tvOS 17.0, *)
+    func setTorchMode(_ torchMode: AVCaptureDevice.TorchMode) {
+        capture.setTorchMode(torchMode)
+        multiCamCapture.setTorchMode(torchMode)
+    }
+    #endif
+
+    #if os(macOS)
     func attachScreen(_ input: AVCaptureScreenInput?) {
         guard let mixer else {
             return
@@ -192,98 +213,78 @@ final class IOVideoUnit: NSObject, IOUnit {
             mixer.session.commitConfiguration()
         }
         guard let input else {
-            mixer.mediaSync = .passthrough
             return
         }
-        mixer.mediaSync = .video
         multiCamCapture.attachScreen(input, videoUnit: self)
-    }
-
-    func setTorchMode(_ torchMode: AVCaptureDevice.TorchMode) {
-        capture.setTorchMode(torchMode)
-        multiCamCapture.setTorchMode(torchMode)
     }
     #endif
 
-    @inline(__always)
-    func effect(_ buffer: CVImageBuffer, info: CMSampleBuffer?) -> CIImage {
-        var image = CIImage(cvPixelBuffer: buffer)
-        for effect in effects {
-            image = effect.execute(image, info: info)
-        }
-        return image
-    }
-
     func registerEffect(_ effect: VideoEffect) -> Bool {
-        effect.ciContext = context
-        return effects.insert(effect).inserted
+        return videoMixer.registerEffect(effect)
     }
 
     func unregisterEffect(_ effect: VideoEffect) -> Bool {
-        effect.ciContext = nil
-        return effects.remove(effect) != nil
+        return videoMixer.unregisterEffect(effect)
     }
 
     func appendSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
-        guard let buffer = sampleBuffer.imageBuffer else {
-            return
+        switch sampleBuffer.formatDescription?._mediaSubType {
+        case kCVPixelFormatType_1Monochrome,
+             kCVPixelFormatType_2Indexed,
+             kCVPixelFormatType_8Indexed,
+             kCVPixelFormatType_1IndexedGray_WhiteIsZero,
+             kCVPixelFormatType_2IndexedGray_WhiteIsZero,
+             kCVPixelFormatType_4IndexedGray_WhiteIsZero,
+             kCVPixelFormatType_8IndexedGray_WhiteIsZero,
+             kCVPixelFormatType_16BE555,
+             kCVPixelFormatType_16LE555,
+             kCVPixelFormatType_16LE5551,
+             kCVPixelFormatType_16BE565,
+             kCVPixelFormatType_16LE565,
+             kCVPixelFormatType_24RGB,
+             kCVPixelFormatType_24BGR,
+             kCVPixelFormatType_32ARGB,
+             kCVPixelFormatType_32BGRA,
+             kCVPixelFormatType_32ABGR,
+             kCVPixelFormatType_32RGBA,
+             kCVPixelFormatType_64ARGB,
+             kCVPixelFormatType_48RGB,
+             kCVPixelFormatType_32AlphaGray,
+             kCVPixelFormatType_16Gray,
+             kCVPixelFormatType_30RGB,
+             kCVPixelFormatType_422YpCbCr8,
+             kCVPixelFormatType_4444YpCbCrA8,
+             kCVPixelFormatType_4444YpCbCrA8R,
+             kCVPixelFormatType_4444AYpCbCr8,
+             kCVPixelFormatType_4444AYpCbCr16,
+             kCVPixelFormatType_444YpCbCr8,
+             kCVPixelFormatType_422YpCbCr16,
+             kCVPixelFormatType_422YpCbCr10,
+             kCVPixelFormatType_444YpCbCr10,
+             kCVPixelFormatType_420YpCbCr8Planar,
+             kCVPixelFormatType_420YpCbCr8PlanarFullRange,
+             kCVPixelFormatType_422YpCbCr_4A_8BiPlanar,
+             kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+             kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
+             kCVPixelFormatType_422YpCbCr8_yuvs,
+             kCVPixelFormatType_422YpCbCr8FullRange,
+             kCVPixelFormatType_OneComponent8,
+             kCVPixelFormatType_TwoComponent8,
+             kCVPixelFormatType_OneComponent16Half,
+             kCVPixelFormatType_OneComponent32Float,
+             kCVPixelFormatType_TwoComponent16Half,
+             kCVPixelFormatType_TwoComponent32Float,
+             kCVPixelFormatType_64RGBAHalf,
+             kCVPixelFormatType_128RGBAFloat:
+            inputFormat = sampleBuffer.formatDescription
+            videoMixer.appendSampleBuffer(sampleBuffer, channel: 0, isVideoMirrored: false)
+        default:
+            codec.appendSampleBuffer(sampleBuffer)
         }
-        var imageBuffer: CVImageBuffer?
-        buffer.lockBaseAddress()
-        defer {
-            buffer.unlockBaseAddress()
-            imageBuffer?.unlockBaseAddress()
-        }
-        #if os(macOS)
-        if capture.isVideoMirrored == true {
-            buffer.reflectHorizontal()
-        }
-        #endif
-        if let multiCamPixelBuffer = multiCamSampleBuffer?.imageBuffer {
-            multiCamPixelBuffer.lockBaseAddress()
-            switch multiCamCaptureSettings.mode {
-            case .pip:
-                buffer.over(
-                    multiCamPixelBuffer,
-                    regionOfInterest: multiCamCaptureSettings.regionOfInterest,
-                    radius: multiCamCaptureSettings.cornerRadius
-                )
-            case .splitView:
-                buffer.split(multiCamPixelBuffer, direction: multiCamCaptureSettings.direction)
-            }
-            multiCamPixelBuffer.unlockBaseAddress()
-        }
-        if drawable != nil || !effects.isEmpty {
-            let image = effect(buffer, info: sampleBuffer)
-            extent = image.extent
-            if !effects.isEmpty {
-                #if os(macOS)
-                pixelBufferPool?.createPixelBuffer(&imageBuffer)
-                #else
-                if buffer.width != Int(extent.width) || buffer.height != Int(extent.height) {
-                    pixelBufferPool?.createPixelBuffer(&imageBuffer)
-                }
-                #endif
-                imageBuffer?.lockBaseAddress()
-                context.render(image, to: imageBuffer ?? buffer)
-            }
-            drawable?.enqueue(sampleBuffer)
-        }
-        if muted {
-            imageBuffer = pixelBuffer
-        }
-        codec.appendImageBuffer(
-            imageBuffer ?? buffer,
-            presentationTimeStamp: sampleBuffer.presentationTimeStamp,
-            duration: sampleBuffer.duration
-        )
-        mixer?.recorder.appendPixelBuffer(
-            imageBuffer ?? buffer,
-            withPresentationTime: sampleBuffer.presentationTimeStamp
-        )
-        if !muted {
-            pixelBuffer = buffer
-        }
+    }
+
+    func setConfigurationRecord(_ config: any DecoderConfigurationRecord) {
+        _ = config.makeFormatDescription(&inputFormat)
     }
 }
 
@@ -297,58 +298,58 @@ extension IOVideoUnit: IOUnitEncoding {
     func stopEncoding() {
         codec.stopRunning()
         codec.delegate = nil
-        pixelBuffer = nil
     }
 }
 
 extension IOVideoUnit: IOUnitDecoding {
     // MARK: IOUnitDecoding
     func startDecoding() {
-        codec.delegate = self
+        codec.delegate = mixer
         codec.startRunning()
     }
 
     func stopDecoding() {
         codec.stopRunning()
         drawable?.enqueue(nil)
-        pixelBuffer = nil
     }
 }
 
-#if os(iOS) || os(macOS)
+#if os(iOS) || os(tvOS) || os(macOS)
+@available(tvOS 17.0, *)
 extension IOVideoUnit: AVCaptureVideoDataOutputSampleBufferDelegate {
     // MARK: AVCaptureVideoDataOutputSampleBufferDelegate
     func captureOutput(_ captureOutput: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         if capture.output == captureOutput {
-            guard mixer?.useSampleBuffer(sampleBuffer: sampleBuffer, mediaType: AVMediaType.video) == true else {
-                return
-            }
-            appendSampleBuffer(sampleBuffer)
+            inputFormat = sampleBuffer.formatDescription
+            videoMixer.appendSampleBuffer(sampleBuffer, channel: 0, isVideoMirrored: connection.isVideoMirrored)
+            drawable?.enqueue(sampleBuffer)
         } else if multiCamCapture.output == captureOutput {
+//<<<<<<< HEAD
 //            multiCamSampleBuffer = sampleBuffer
             guard mixer?.useSampleBuffer(sampleBuffer: sampleBuffer, mediaType: AVMediaType.video) == true else {
                 return
             }
             appendSampleBuffer(sampleBuffer)
+//=======
+//            videoMixer.appendSampleBuffer(sampleBuffer, channel: 1, isVideoMirrored: connection.isVideoMirrored)
+//>>>>>>> main
         }
     }
 }
 #endif
 
-extension IOVideoUnit: VideoCodecDelegate {
-    // MARK: VideoCodecDelegate
-    func videoCodec(_ codec: VideoCodec, didOutput formatDescription: CMFormatDescription?) {
-    }
-
-    func videoCodec(_ codec: VideoCodec, didOutput sampleBuffer: CMSampleBuffer) {
-        mixer?.mediaLink.enqueueVideo(sampleBuffer)
-    }
-
-    func videoCodec(_ codec: VideoCodec, errorOccurred error: VideoCodec.Error) {
-        logger.trace(error)
-    }
-
-    func videoCodecWillDropFame(_ codec: VideoCodec) -> Bool {
-        return false
+extension IOVideoUnit: IOVideoMixerDelegate {
+    // MARK: IOVideoMixerDelegate
+    func videoMixer(_ videoMixer: IOVideoMixer<IOVideoUnit>, didOutput imageBuffer: CVImageBuffer, presentationTimeStamp: CMTime) {
+        self.presentationTimeStamp = presentationTimeStamp
+        codec.appendImageBuffer(
+            imageBuffer,
+            presentationTimeStamp: presentationTimeStamp,
+            duration: .invalid
+        )
+        mixer?.recorder.appendPixelBuffer(
+            imageBuffer,
+            withPresentationTime: presentationTimeStamp
+        )
     }
 }
