@@ -79,7 +79,7 @@ extension IOAudioUnit: IOUnitEncoding {
 
     func stopEncoding() {
         codec.stopRunning()
-        codec.delegate = nil
+//        codec.delegate = nil
     }
 }
 
@@ -98,7 +98,7 @@ extension IOAudioUnit: IOUnitDecoding {
             mixer?.audioEngine?.detach(playerNode)
         }
         codec.stopRunning()
-        codec.delegate = nil
+//        codec.delegate = nil
     }
 }
 

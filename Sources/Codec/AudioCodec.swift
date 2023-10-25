@@ -185,6 +185,7 @@ extension AudioCodec: Running {
             guard !self.isRunning.value else {
                 return
             }
+            self.audioConverter?.reset()
             if let audioConverter = self.audioConverter {
                 self.delegate?.audioCodec(self, didOutput: audioConverter.outputFormat)
             }
@@ -197,8 +198,6 @@ extension AudioCodec: Running {
             guard self.isRunning.value else {
                 return
             }
-            self.inSourceFormat = nil
-            self.audioConverter = nil
             self.isRunning.mutate { $0 = false }
         }
     }
