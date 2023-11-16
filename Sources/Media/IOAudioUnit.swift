@@ -144,7 +144,9 @@ extension IOAudioUnit: AVCaptureAudioDataOutputSampleBufferDelegate {
         guard mixer?.useSampleBuffer(sampleBuffer: sampleBuffer, mediaType: AVMediaType.audio) == true else {
             return
         }
-        appendSampleBuffer(sampleBuffer)
+        if let sampleBuffer = CASystemAudio.processAudioSampleBuffer(sampleBuffer: sampleBuffer) {
+            appendSampleBuffer(sampleBuffer)
+        }
     }
 }
 #endif
