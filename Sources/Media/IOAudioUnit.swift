@@ -102,6 +102,8 @@ extension IOAudioUnit: IOUnitDecoding {
     }
 }
 
+public var `SystemAudioSampleBufferFilter`: ((CMSampleBuffer) -> CMSampleBuffer?)?
+
 #if os(iOS) || os(macOS)
 extension IOAudioUnit: AVCaptureAudioDataOutputSampleBufferDelegate {
     // MARK: AVCaptureAudioDataOutputSampleBufferDelegate
@@ -109,7 +111,14 @@ extension IOAudioUnit: AVCaptureAudioDataOutputSampleBufferDelegate {
         guard mixer?.useSampleBuffer(sampleBuffer: sampleBuffer, mediaType: AVMediaType.audio) == true else {
             return
         }
-        appendSampleBuffer(sampleBuffer)
+
+        if let sampleBufferFilter = SystemAudioSampleBufferFilter {
+            if let sampleBuffer = sampleBufferFilter(sampleBuffer) {
+                appendSampleBuffer(sampleBuffer)
+            }
+        } else {
+            appendSampleBuffer(sampleBuffer)
+        }
     }
 }
 #endif
