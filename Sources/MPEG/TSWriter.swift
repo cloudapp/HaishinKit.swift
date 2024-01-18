@@ -305,7 +305,6 @@ public class TSFileWriter: TSWriter {
     static let defaultSegmentCount: Int = 10000
     static let defaultSegmentMaxCount: Int = 10000
     public var baseFolder: URL?
-    public var shouldAppendToStream: Bool = false
 
     var segmentMaxCount: Int = TSFileWriter.defaultSegmentMaxCount
     private(set) var files: [M3UMediaInfo] = []
@@ -313,7 +312,6 @@ public class TSFileWriter: TSWriter {
     private var currentFileURL: URL?
     private var sequence: Int = 0
     public var isDiscontinuity = false
-    private var isTerminating: Bool = false
 
     var playlist: String {
         var m3u8 = M3U()
@@ -361,31 +359,18 @@ public class TSFileWriter: TSWriter {
             }
         }
 
-        // let filename: String = Int(timestamp.seconds).description + ".ts"
-          let playlistUrl = base.appendingPathComponent("ScreenRecording.m3u8")
-          let filename = String(format: "part%.5i.ts", sequence)
-          let url = base.appendingPathComponent(filename)
-          
-          if isTerminating { return }
+        let playlistUrl = base.appendingPathComponent("ScreenRecording.m3u8")
+        let filename = String(format: "part%.5i.ts", sequence)
+        let url = base.appendingPathComponent(filename)
         
-        // Toss part0 due to bad duration calculation.
-            // shouldAppendToStream is true when countdown-completed arrives
-            if let currentUrl = currentFileURL, sequence > 1 && shouldAppendToStream {
-              // let asset = AVAsset(url: currentUrl)
-              // let calculatedDuration = CMTimeGetSeconds(asset.duration)
-              // Logger.info("Duration: \(duration) Calculated duration: \(calculatedDuration)")
-              files.append(M3UMediaInfo(url: currentUrl, duration: duration, isDiscontinuous: isDiscontinuity))
-              isDiscontinuity = false
-              fileManager.createFile(atPath: playlistUrl.path, contents: playlist.data(using: .utf8), attributes: nil)
-              notifyDelegate(tsUrl: currentUrl, playlistUrl: playlistUrl)
-            }
-            
-            sequence += 1
-            if shouldAppendToStream {
-              segmentDuration = 2
-            } else {
-              segmentDuration = 1
-            }
+        if let currentUrl = currentFileURL, sequence >= 1 {
+            files.append(M3UMediaInfo(url: currentUrl, duration: duration, isDiscontinuous: isDiscontinuity))
+            isDiscontinuity = false
+            fileManager.createFile(atPath: playlistUrl.path, contents: playlist.data(using: .utf8), attributes: nil)
+            notifyDelegate(tsUrl: currentUrl, playlistUrl: playlistUrl)
+        }
+        
+        sequence += 1
 
         fileManager.createFile(atPath: url.path, contents: nil, attributes: nil)
         if TSFileWriter.defaultSegmentMaxCount <= files.count {

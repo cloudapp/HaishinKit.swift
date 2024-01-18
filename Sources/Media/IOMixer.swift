@@ -187,10 +187,11 @@ public class IOMixer {
         IOMixer.audioEngineHolder.release(audioEngine)
     }
     #endif
-
+    
     private var audioTimeStamp = CMTime.zero
     private var videoTimeStamp = CMTime.zero
-
+    private var startTimeStamp: CFTimeInterval = 0
+    
     /// Append a CMSampleBuffer with media type.
     public func appendSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
         switch readyState {
@@ -214,8 +215,12 @@ public class IOMixer {
     func useSampleBuffer(sampleBuffer: CMSampleBuffer, mediaType: AVMediaType) -> Bool {
         switch mediaSync {
         case .video:
+            if sampleBuffer.presentationTimeStamp.seconds < self.startTimeStamp {
+                return false
+            }
             if mediaType == .audio {
-                return !videoTimeStamp.seconds.isZero && videoTimeStamp.seconds <= sampleBuffer.presentationTimeStamp.seconds
+                let result = !videoTimeStamp.seconds.isZero && videoTimeStamp.seconds <= sampleBuffer.presentationTimeStamp.seconds
+                return result
             }
             if videoTimeStamp == CMTime.zero {
                 videoTimeStamp = sampleBuffer.presentationTimeStamp
@@ -317,11 +322,18 @@ extension IOMixer: MediaLinkDelegate {
 
 #if os(iOS) || os(macOS)
 extension IOMixer: Running {
+    
     // MARK: Running
+    public func startRunning(startTime: CFTimeInterval) {
+        self.startTimeStamp = startTime
+        startRunning()
+    }
+    
     public func startRunning() {
         guard !isRunning.value else {
             return
         }
+        self.startTimeStamp = CACurrentMediaTime()
         addSessionObservers(session)
         session.startRunning()
         isRunning.mutate { $0 = session.isRunning }
