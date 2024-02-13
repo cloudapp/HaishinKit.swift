@@ -1,7 +1,7 @@
 import AVFoundation
 
 /// The HTTPStream class represents an HLS playlist and .ts files.
-open class HTTPStream: NetStream {
+open class HTTPStream: NetStream, IOMixerLogsDelegate {
     /// For appendSampleBuffer, specifies whether media contains types .video or .audio.
     public var expectedMedias: Set<AVMediaType> {
         get {
@@ -26,6 +26,7 @@ open class HTTPStream: NetStream {
             }
             self.name = name
             self.mixer.startEncoding(self.tsWriter)
+            self.mixer.logsDelegate = self
             self.mixer.startRunning()
             self.tsWriter.startRunning()
         }
@@ -69,4 +70,9 @@ open class HTTPStream: NetStream {
             return nil
         }
     }
+    
+    func mixerLogs(_ logs: String) {
+        tsWriter.writeLogs(logs)
+    }
+
 }

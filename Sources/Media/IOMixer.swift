@@ -22,6 +22,10 @@ protocol IOMixerDelegate: AnyObject {
     #endif
 }
 
+protocol IOMixerLogsDelegate: AnyObject {
+    func mixerLogs(_ logs: String)
+}
+
 /// An object that mixies audio and video for streaming.
 public class IOMixer {
     /// The default fps for an IOMixer, value is 30.
@@ -160,6 +164,7 @@ public class IOMixer {
     var mediaSync = MediaSync.passthrough
 
     weak var delegate: (any IOMixerDelegate)?
+    weak var logsDelegate: (any IOMixerLogsDelegate)?
 
     lazy var audioIO: IOAudioUnit = {
         var audioIO = IOAudioUnit()
