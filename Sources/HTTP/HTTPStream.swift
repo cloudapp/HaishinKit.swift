@@ -27,7 +27,7 @@ open class HTTPStream: NetStream, IOMixerLogsDelegate {
             self.name = name
             self.mixer.startEncoding(self.tsWriter)
             self.mixer.logsDelegate = self
-            self.mixer.startRunning()
+            self.mixer.startRunning(startTime:0)
             self.tsWriter.startRunning()
         }
     }

@@ -227,7 +227,7 @@ public class IOMixer {
                 let result = !videoTimeStamp.seconds.isZero && videoTimeStamp.seconds <= sampleBuffer.presentationTimeStamp.seconds
                 return result
             }
-            if videoTimeStamp == CMTime.zero {
+            if videoTimeStamp == CMTime.zero && self.startTimeStamp != 0 {
                 videoTimeStamp = sampleBuffer.presentationTimeStamp
             }
             return true
@@ -331,17 +331,16 @@ extension IOMixer: Running {
     // MARK: Running
     public func startRunning(startTime: CFTimeInterval) {
         self.startTimeStamp = startTime
-        startRunning()
-    }
-    
-    public func startRunning() {
         guard !isRunning.value else {
             return
         }
-        self.startTimeStamp = CACurrentMediaTime()
         addSessionObservers(session)
         session.startRunning()
         isRunning.mutate { $0 = session.isRunning }
+    }
+    
+    public func startRunning() {
+        self.startRunning(startTime: CACurrentMediaTime())
     }
 
     public func stopRunning() {
