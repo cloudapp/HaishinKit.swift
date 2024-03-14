@@ -22,6 +22,10 @@ protocol IOMixerDelegate: AnyObject {
     #endif
 }
 
+protocol IOMixerLogsDelegate: AnyObject {
+    func mixerLogs(_ logs: String)
+}
+
 /// An object that mixies audio and video for streaming.
 public class IOMixer {
     /// The default fps for an IOMixer, value is 30.
@@ -160,6 +164,7 @@ public class IOMixer {
     var mediaSync = MediaSync.passthrough
 
     weak var delegate: (any IOMixerDelegate)?
+    weak var logsDelegate: (any IOMixerLogsDelegate)?
 
     lazy var audioIO: IOAudioUnit = {
         var audioIO = IOAudioUnit()
@@ -222,7 +227,7 @@ public class IOMixer {
                 let result = !videoTimeStamp.seconds.isZero && videoTimeStamp.seconds <= sampleBuffer.presentationTimeStamp.seconds
                 return result
             }
-            if videoTimeStamp == CMTime.zero {
+            if videoTimeStamp == CMTime.zero && self.startTimeStamp != 0 {
                 videoTimeStamp = sampleBuffer.presentationTimeStamp
             }
             return true
@@ -326,17 +331,16 @@ extension IOMixer: Running {
     // MARK: Running
     public func startRunning(startTime: CFTimeInterval) {
         self.startTimeStamp = startTime
-        startRunning()
-    }
-    
-    public func startRunning() {
         guard !isRunning.value else {
             return
         }
-        self.startTimeStamp = CACurrentMediaTime()
         addSessionObservers(session)
         session.startRunning()
         isRunning.mutate { $0 = session.isRunning }
+    }
+    
+    public func startRunning() {
+        self.startRunning(startTime: CACurrentMediaTime())
     }
 
     public func stopRunning() {

@@ -25,7 +25,7 @@ final class IOAudioResampler<T: IOAudioResamplerDelegate> {
         return audioConverter?.outputFormat
     }
 
-    private var inSourceFormat: AudioStreamBasicDescription? {
+    private (set) var inSourceFormat: AudioStreamBasicDescription? {
         didSet {
             guard var inSourceFormat, inSourceFormat != oldValue else {
                 return

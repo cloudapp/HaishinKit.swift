@@ -12,6 +12,7 @@ public protocol TSWriterDelegate: AnyObject {
     func writer(_ writer: TSWriter, didOutput data: Data)
     func didGenerateTS(_ file: URL)
     func didGenerateM3U8(_ file: URL)
+    func writeLogs(_ logs: String)
 }
 
 public extension TSWriterDelegate {
@@ -464,4 +465,9 @@ public class TSFileWriter: TSWriter {
         }
         files.removeAll()
     }
+
+    func writeLogs(_ logs: String) {
+        self.delegate?.writeLogs(logs)
+    }
+
 }
