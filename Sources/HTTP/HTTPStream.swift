@@ -42,7 +42,7 @@ open class HTTPStream: NetStream, IOMixerLogsDelegate {
         super.attachCamera(device, onError: onError)
     }
 
-    override open func attachAudio(_ device: AVCaptureDevice?, automaticallyConfiguresApplicationAudioSession: Bool = true, onError: ((any Error) -> Void)? = nil) {
+    override open func attachAudio(_ device: AVCaptureDevice?, automaticallyConfiguresApplicationAudioSession: Bool = true, onError: (((any Error)?) -> Void)? = nil) {
         if device == nil {
             tsWriter.expectedMedias.remove(.audio)
         } else {
