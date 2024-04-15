@@ -69,7 +69,7 @@ final class IOAudioUnit: NSObject, IOUnit {
         if resampler.inSourceFormat != sampleBuffer.formatDescription?.audioStreamBasicDescription {
             if let mediaSubType = CMSampleBufferGetFormatDescription(sampleBuffer)?.mediaSubType {
                 let mediaSubTypeString = "\(mediaSubType)"
-                self.mixer?.logsDelegate?.mixerLogs(mediaSubTypeString)
+                self.mixer?.logsDelegate?.mixerFormatLog(mediaSubTypeString)
             }
         }
         resampler.appendSampleBuffer(sampleBuffer.muted(muted))

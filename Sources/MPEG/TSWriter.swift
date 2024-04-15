@@ -12,7 +12,8 @@ public protocol TSWriterDelegate: AnyObject {
     func writer(_ writer: TSWriter, didOutput data: Data)
     func didGenerateTS(_ file: URL)
     func didGenerateM3U8(_ file: URL)
-    func writeLogs(_ logs: String)
+    func mixerFormatLog(_ format: String)
+    func writerError(_ error: Error, logs: String)
 }
 
 public extension TSWriterDelegate {
@@ -301,6 +302,29 @@ extension TSWriter: VideoCodecDelegate {
     }
 }
 
+
+enum TSWriterError: Int {
+    case tempDirectory = 1
+    case removeItem
+    case write
+    case writeToUrl
+    case syncAndClose
+    func domain() -> String {
+      switch self {
+      case .tempDirectory:
+        return "Zight.TSWriterError.tempDirectory"
+      case .removeItem:
+          return "Zight.TSWriterError.removeItem"
+      case .write:
+          return "Zight.TSWriterError.write"
+      case .writeToUrl:
+          return "Zight.TSWriterError.writeToUrl"
+      case .syncAndClose:
+          return "Zight.TSWriterError.syncAndClose"
+      }
+    }
+}
+
 public class TSFileWriter: TSWriter {
     static let defaultSegmentCount: Int = 10000
     static let defaultSegmentMaxCount: Int = 10000
@@ -351,10 +375,12 @@ public class TSFileWriter: TSWriter {
                 try FileManager.default.createDirectory(atPath: temp, withIntermediateDirectories: false, attributes: nil)
             } catch {
                 logger.warn(error)
-                writeLogs(error.localizedDescription)
+                let logs = error.localizedDescription
+                self.writerError(TSWriterError.tempDirectory, logs: logs)
             }
         }
     }
+    
     
     override func rotateFileHandle(_ timestamp: CMTime) {
         let duration: Double = timestamp.seconds - rotatedTimestamp.seconds
@@ -391,7 +417,8 @@ public class TSFileWriter: TSWriter {
                     try FileManager.default.removeItem(at: info.url as URL)
                 } catch {
                     logger.warn(error)
-                    self.writeLogs(error.localizedDescription)
+                    let logs = error.localizedDescription
+                    self.writerError(TSWriterError.removeItem, logs: logs)
                 }
             }
             self.dispatchGroup.leave()
@@ -414,7 +441,8 @@ public class TSFileWriter: TSWriter {
                 self.currentFileHandle = try FileHandle(forWritingTo: url)
             } catch let e {
                 logger.warn("\(e)")
-                self.writeLogs(e.localizedDescription)
+                let logs = e.localizedDescription
+                self.writerError(TSWriterError.writeToUrl, logs: logs)
             }
             self.dispatchGroup.leave()
         }
@@ -432,7 +460,8 @@ public class TSFileWriter: TSWriter {
             try self.currentFileHandle?.close()
         } catch let e {
             logger.warn("\(e)")
-            self.writeLogs(e.localizedDescription)
+            let logs = e.localizedDescription
+            self.writerError(TSWriterError.syncAndClose, logs: logs)
         }
     }
     
@@ -463,7 +492,8 @@ public class TSFileWriter: TSWriter {
                 self.currentFileHandle?.write(data)
             }, { exception in
                 logger.warn("\(exception)")
-                self.writeLogs(exception.description)
+                let logs = exception.description
+                self.writerError(TSWriterError.write, logs: logs)
             })
             super.write(data)
         }
@@ -492,14 +522,20 @@ public class TSFileWriter: TSWriter {
                 try FileManager.default.removeItem(at: info.url as URL)
             } catch {
                 logger.warn(error)
-                self.writeLogs(error.localizedDescription)
+                let logs = error.localizedDescription
+                writerError(TSWriterError.removeItem, logs: logs)
             }
         }
         files.removeAll()
     }
 
-    func writeLogs(_ logs: String) {
-        self.delegate?.writeLogs(logs)
+    func mixerFormatLog(_ format: String) {
+        self.delegate?.mixerFormatLog(format)
+    }
+    
+    func writerError(_ error: TSWriterError, logs: String) {
+        let error = NSError(domain: error.domain(), code: error.rawValue)
+        self.delegate?.writerError(error, logs: logs)
     }
     
 }

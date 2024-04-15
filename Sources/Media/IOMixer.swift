@@ -23,7 +23,7 @@ protocol IOMixerDelegate: AnyObject {
 }
 
 protocol IOMixerLogsDelegate: AnyObject {
-    func mixerLogs(_ logs: String)
+    func mixerFormatLog(_ format: String)
 }
 
 /// An object that mixies audio and video for streaming.
