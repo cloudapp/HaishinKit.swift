@@ -12,7 +12,8 @@ public protocol TSWriterDelegate: AnyObject {
     func writer(_ writer: TSWriter, didOutput data: Data)
     func didGenerateTS(_ file: URL)
     func didGenerateM3U8(_ file: URL)
-    func writeLogs(_ logs: String)
+    func mixerFormatLog(_ format: String)
+    func writerError(_ error: Error, logs: String)
 }
 
 public extension TSWriterDelegate {
@@ -152,7 +153,6 @@ public class TSWriter: Running {
         let timestamp = decodeTimeStamp == .invalid ? presentationTimeStamp : decodeTimeStamp
         let packets: [TSPacket] = split(PID, PES: PES, timestamp: timestamp)
         rotateFileHandle(timestamp)
-
         packets[0].adaptationField?.randomAccessIndicator = randomAccessIndicator
 
         var bytes = Data()
@@ -302,6 +302,29 @@ extension TSWriter: VideoCodecDelegate {
     }
 }
 
+
+enum TSWriterError: Int {
+    case tempDirectory = 1
+    case removeItem
+    case write
+    case writeToUrl
+    case syncAndClose
+    func domain() -> String {
+      switch self {
+      case .tempDirectory:
+        return "Zight.TSWriterError.tempDirectory"
+      case .removeItem:
+          return "Zight.TSWriterError.removeItem"
+      case .write:
+          return "Zight.TSWriterError.write"
+      case .writeToUrl:
+          return "Zight.TSWriterError.writeToUrl"
+      case .syncAndClose:
+          return "Zight.TSWriterError.syncAndClose"
+      }
+    }
+}
+
 public class TSFileWriter: TSWriter {
     static let defaultSegmentCount: Int = 10000
     static let defaultSegmentMaxCount: Int = 10000
@@ -313,7 +336,12 @@ public class TSFileWriter: TSWriter {
     private var currentFileURL: URL?
     private var sequence: Int = 0
     public var isDiscontinuity = false
-
+    
+    private let writeLockQueue = DispatchQueue(label: "com.linebreak.CloudAppMacOSX.LockQueue")
+    private let dispatchGroup = DispatchGroup()
+    private let semaphore = DispatchSemaphore(value: 1)
+    private (set) var isRotating: Atomic<Bool> = .init(false)
+    
     var playlist: String {
         var m3u8 = M3U()
         m3u8.targetDuration = segmentDuration
@@ -333,72 +361,109 @@ public class TSFileWriter: TSWriter {
         }
         return m3u8.description
     }
-
-    override func rotateFileHandle(_ timestamp: CMTime) {
-        let duration: Double = timestamp.seconds - rotatedTimestamp.seconds
-        if duration <= segmentDuration {
-            return
-        }
-        let fileManager = FileManager.default
-        guard let base = baseFolder else {
-            
-            return
-          }
-        
-        #if os(OSX)
+    
+    override public init(segmentDuration: Double = TSWriter.defaultSegmentDuration) {
+        super.init(segmentDuration: segmentDuration)
+#if os(OSX)
         let bundleIdentifier: String? = Bundle.main.bundleIdentifier
         let temp: String = bundleIdentifier == nil ? NSTemporaryDirectory() : NSTemporaryDirectory() + bundleIdentifier! + "/"
-        #else
+#else
         let temp: String = NSTemporaryDirectory()
-        #endif
-
-        if !fileManager.fileExists(atPath: temp) {
+#endif
+        if !FileManager.default.fileExists(atPath: temp) {
             do {
-                try fileManager.createDirectory(atPath: temp, withIntermediateDirectories: false, attributes: nil)
+                try FileManager.default.createDirectory(atPath: temp, withIntermediateDirectories: false, attributes: nil)
             } catch {
                 logger.warn(error)
+                let logs = error.localizedDescription
+                self.writerError(TSWriterError.tempDirectory, logs: logs)
             }
         }
-
-        let playlistUrl = base.appendingPathComponent("ScreenRecording.m3u8")
-        let filename = String(format: "part%.5i.ts", sequence)
-        let url = base.appendingPathComponent(filename)
-        
-        if let currentUrl = currentFileURL, sequence >= 1 {
-            files.append(M3UMediaInfo(url: currentUrl, duration: duration, isDiscontinuous: isDiscontinuity))
-            isDiscontinuity = false
-            fileManager.createFile(atPath: playlistUrl.path, contents: playlist.data(using: .utf8), attributes: nil)
-            notifyDelegate(tsUrl: currentUrl, playlistUrl: playlistUrl)
-        }
-        
-        sequence += 1
-
-        fileManager.createFile(atPath: url.path, contents: nil, attributes: nil)
-        if TSFileWriter.defaultSegmentMaxCount <= files.count {
-            let info: M3UMediaInfo = files.removeFirst()
-            do {
-                try fileManager.removeItem(at: info.url as URL)
-            } catch {
-                logger.warn(error)
-            }
-        }
-        currentFileURL = url
-        audioContinuityCounter = 0
-        videoContinuityCounter = 0
-
-        nstry({
-            self.currentFileHandle?.synchronizeFile()
-        }, { exeption in
-            logger.warn("\(exeption)")
-        })
-
-        currentFileHandle?.closeFile()
-        currentFileHandle = try? FileHandle(forWritingTo: url)
-
-        writeProgram()
-        rotatedTimestamp = timestamp
     }
     
+    
+    override func rotateFileHandle(_ timestamp: CMTime) {
+        let duration: Double = timestamp.seconds - rotatedTimestamp.seconds
+        if duration <= segmentDuration || self.isRotating.value {
+            return
+        }
+        guard let base = baseFolder else {
+            return
+        }
+        
+        self.semaphore.wait()
+        if self.isRotating.value {
+            return
+        } else {
+            self.isRotating.mutate{ $0 = true }
+        }
+        self.semaphore.signal()
+
+        let currentUrl = self.currentFileURL
+        let sec = self.sequence
+        
+        dispatchGroup.enter()
+        DispatchQueue.global(qos: .default).async {
+            let playlistUrl = base.appendingPathComponent("ScreenRecording.m3u8")
+            if let url = currentUrl, sec >= 1 {
+                self.files.append(M3UMediaInfo(url: url, duration: duration, isDiscontinuous: self.isDiscontinuity))
+                self.isDiscontinuity = false
+                FileManager.default.createFile(atPath: playlistUrl.path, contents: self.playlist.data(using: .utf8), attributes: nil)
+                self.notifyDelegate(tsUrl: url, playlistUrl: playlistUrl)
+            }
+            if TSFileWriter.defaultSegmentMaxCount <= self.files.count {
+                let info: M3UMediaInfo = self.files.removeFirst()
+                do {
+                    try FileManager.default.removeItem(at: info.url as URL)
+                } catch {
+                    logger.warn(error)
+                    let logs = error.localizedDescription
+                    self.writerError(TSWriterError.removeItem, logs: logs)
+                }
+            }
+            self.dispatchGroup.leave()
+        }
+        
+        dispatchGroup.enter()
+        writeLockQueue.async {
+            let filename = String(format: "part%.5i.ts", self.sequence)
+            let url = base.appendingPathComponent(filename)
+            self.sequence += 1
+            
+            FileManager.default.createFile(atPath: url.path, contents: nil, attributes: nil)
+            
+            self.currentFileURL = url
+            self.audioContinuityCounter = 0
+            self.videoContinuityCounter = 0
+            
+            self.synchronizeAndCloseFile()
+            do {
+                self.currentFileHandle = try FileHandle(forWritingTo: url)
+            } catch let e {
+                logger.warn("\(e)")
+                let logs = e.localizedDescription
+                self.writerError(TSWriterError.writeToUrl, logs: logs)
+            }
+            self.dispatchGroup.leave()
+        }
+            
+        dispatchGroup.notify(queue: DispatchQueue.global(qos: .default)) {
+            self.writeProgram()
+            self.rotatedTimestamp = timestamp
+            self.isRotating.mutate{ $0 = false }
+        }
+    }
+    
+    private func synchronizeAndCloseFile() {
+        do {
+            try self.currentFileHandle?.synchronize()
+            try self.currentFileHandle?.close()
+        } catch let e {
+            logger.warn("\(e)")
+            let logs = e.localizedDescription
+            self.writerError(TSWriterError.syncAndClose, logs: logs)
+        }
+    }
     
     func notifyDelegate(tsUrl: URL, playlistUrl: URL) {
        self.delegate?.didGenerateTS(tsUrl)
@@ -412,42 +477,39 @@ public class TSFileWriter: TSWriter {
         DispatchQueue.main.asyncAfter(deadline: .now()+(TSWriter.defaultSegmentDuration+1)) {
             if let currentUrl = self.currentFileURL {
                 let playlistUrl = base.appendingPathComponent("ScreenRecording.m3u8")
-                
                 self.files.append(M3UMediaInfo(url: currentUrl, duration: TSWriter.defaultSegmentDuration,  isDiscontinuous: false))
                 FileManager.default.createFile(atPath: playlistUrl.path, contents: self.playlist.data(using: .utf8), attributes: nil)
                 self.notifyDelegate(tsUrl: currentUrl, playlistUrl: playlistUrl)
             }
             self.currentFileURL = nil
-            self.currentFileHandle = nil
             super.stopRunning()
         }
     }
     
     override func write(_ data: Data) {
-        nstry({
-            self.currentFileHandle?.write(data)
-        }, { exception in
-            self.currentFileHandle?.write(data)
-            logger.warn("\(exception)")
-        })
-        super.write(data)
+        writeLockQueue.async {
+            nstry({
+                self.currentFileHandle?.write(data)
+            }, { exception in
+                logger.warn("\(exception)")
+                let logs = exception.description
+                self.writerError(TSWriterError.write, logs: logs)
+            })
+            super.write(data)
+        }
     }
 
     public override func stopRunning() {
         guard !isRunning.value else {
             return
         }
-        nstry({
-          self.currentFileHandle?.synchronizeFile()
-        }, { exeption in
-//          Logger.warn("\(exeption)")
-            
-        })
-
-        currentFileHandle?.closeFile()
+        
+        writeLockQueue.async {
+            self.synchronizeAndCloseFile()
+            self.currentFileHandle = nil
+        }
         
         writeFinal()
-        
     }
 
     func getFilePath(_ fileName: String) -> String? {
@@ -455,19 +517,25 @@ public class TSFileWriter: TSWriter {
     }
 
     private func removeFiles() {
-        let fileManager = FileManager.default
         for info in files {
             do {
-                try fileManager.removeItem(at: info.url as URL)
+                try FileManager.default.removeItem(at: info.url as URL)
             } catch {
                 logger.warn(error)
+                let logs = error.localizedDescription
+                writerError(TSWriterError.removeItem, logs: logs)
             }
         }
         files.removeAll()
     }
 
-    func writeLogs(_ logs: String) {
-        self.delegate?.writeLogs(logs)
+    func mixerFormatLog(_ format: String) {
+        self.delegate?.mixerFormatLog(format)
     }
-
+    
+    func writerError(_ error: TSWriterError, logs: String) {
+        let error = NSError(domain: error.domain(), code: error.rawValue)
+        self.delegate?.writerError(error, logs: logs)
+    }
+    
 }

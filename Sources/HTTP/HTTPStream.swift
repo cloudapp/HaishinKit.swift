@@ -71,8 +71,8 @@ open class HTTPStream: NetStream, IOMixerLogsDelegate {
         }
     }
     
-    func mixerLogs(_ logs: String) {
-        tsWriter.writeLogs(logs)
+    func mixerFormatLog(_ format: String) {
+        tsWriter.mixerFormatLog(format)
     }
 
 }
